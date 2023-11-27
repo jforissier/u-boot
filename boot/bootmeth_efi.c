@@ -20,6 +20,8 @@
 #include <mapmem.h>
 #include <mmc.h>
 #include <net.h>
+#include <net/lwip.h>
+#include <net/ulwip.h>
 #include <pxe_utils.h>
 #include <linux/sizes.h>
 
@@ -320,9 +322,13 @@ static int distro_efi_try_bootflow_files(struct udevice *dev,
 
 static int distro_efi_read_bootflow_net(struct bootflow *bflow)
 {
+#ifdef CONFIG_LWIP
+	char fname[256];
+#else
 	char file_addr[17], fname[256];
 	char *tftp_argv[] = {"tftp", file_addr, fname, NULL};
-	struct cmd_tbl cmdtp = {};	/* dummy */
+	struct cmd_tbl cmdtp = {};      /* dummy */
+#endif
 	const char *addr_str, *fdt_addr_str, *bootfile_name;
 	int ret, arch, size;
 	ulong addr, fdt_addr;
@@ -375,7 +381,9 @@ static int distro_efi_read_bootflow_net(struct bootflow *bflow)
 	if (!fdt_addr_str)
 		return log_msg_ret("fdt", -EINVAL);
 	fdt_addr = hextoul(fdt_addr_str, NULL);
+#ifndef CONFIG_LWIP
 	sprintf(file_addr, "%lx", fdt_addr);
+#endif
 
 	/* We only allow the first prefix with PXE */
 	ret = distro_efi_get_fdt_name(fname, sizeof(fname), 0);
@@ -386,7 +394,20 @@ static int distro_efi_read_bootflow_net(struct bootflow *bflow)
 	if (!bflow->fdt_fname)
 		return log_msg_ret("fil", -ENOMEM);
 
-	if (!do_tftpb(&cmdtp, 0, 3, tftp_argv)) {
+#ifdef CONFIG_LWIP
+	ret = ulwip_init();
+	if (ret)
+		return log_msg_ret("ulwip_init", ret);
+
+	ret = ulwip_tftp(fdt_addr, fname);
+	if (ret)
+		return log_msg_ret("ulwip_tftp", ret);
+
+	ret = ulwip_loop();
+#else
+	ret = do_tftpb(&cmdtp, 0, 3, tftp_argv);
+#endif
+	if (!ret) {
 		bflow->fdt_size = env_get_hex("filesize", 0);
 		bflow->fdt_addr = fdt_addr;
 	} else {

@@ -22,6 +22,7 @@
 #include <net/udp.h>
 #include <net/sntp.h>
 #include <net/ncsi.h>
+#include <net/lwip.h>
 
 static int netboot_common(enum proto_t, struct cmd_tbl *, int, char * const []);
 
@@ -40,6 +41,7 @@ U_BOOT_CMD(
 #endif
 
 #ifdef CONFIG_CMD_TFTPBOOT
+#ifndef CONFIG_LWIP
 int do_tftpb(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
 	int ret;
@@ -49,10 +51,14 @@ int do_tftpb(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 	bootstage_mark_name(BOOTSTAGE_KERNELREAD_STOP, "tftp_done");
 	return ret;
 }
-
+#endif
 #if IS_ENABLED(CONFIG_IPV6)
 U_BOOT_CMD(
-	tftpboot,	4,	1,	do_tftpb,
+#ifdef CONFIG_LWIP
+	tftpboot,	4,	1, do_lwip_tftp,
+#else
+	tftpboot,	4,	1,     do_tftpb,
+#endif
 	"boot image via network using TFTP protocol\n"
 	"To use IPv6 add -ipv6 parameter or use IPv6 hostIPaddr framed "
 	"with [] brackets",
@@ -60,7 +66,11 @@ U_BOOT_CMD(
 );
 #else
 U_BOOT_CMD(
-	tftpboot,	3,	1,	do_tftpb,
+#ifdef CONFIG_LWIP
+	tftpboot,	3,	1,  do_lwip_tftp,
+#else
+	tftpboot,	3,	1,      do_tftpb,
+#endif
 	"load file via network using TFTP protocol",
 	"[loadAddress] [[hostIPaddr:]bootfilename]"
 );
@@ -139,7 +149,11 @@ U_BOOT_CMD(dhcp6,	3,	1,	do_dhcp6,
 static int do_dhcp(struct cmd_tbl *cmdtp, int flag, int argc,
 		   char *const argv[])
 {
+#ifdef CONFIG_LWIP
+	return do_lwip_dhcp();
+#else
 	return netboot_common(DHCP, cmdtp, argc, argv);
+#endif
 }
 
 U_BOOT_CMD(
@@ -196,16 +210,29 @@ U_BOOT_CMD(
 #endif
 
 #if defined(CONFIG_CMD_WGET)
+#ifdef CONFIG_LWIP
+int do_lwip_wget(struct cmd_tbl *cmdtp, int flag, int argc,
+		 char *const argv[]);
+#else
 static int do_wget(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
 	return netboot_common(WGET, cmdtp, argc, argv);
 }
+#endif
 
+#ifdef CONFIG_LWIP
+U_BOOT_CMD(
+	wget,   3,      1, do_lwip_wget,
+	"download using HTTP and write to memory (default: ${loadaddr})",
+	"[loadAddress] URL"
+);
+#else
 U_BOOT_CMD(
 	wget,   3,      1,      do_wget,
-	"boot image via network using HTTP protocol",
-	"[loadAddress] [[hostIPaddr:]path and image name]"
+        "boot image via network using HTTP protocol",
+        "[loadAddress] [[hostIPaddr:]path and image name]"
 );
+#endif
 #endif
 
 static void netboot_update_env(void)
@@ -456,6 +483,7 @@ static int netboot_common(enum proto_t proto, struct cmd_tbl *cmdtp, int argc,
 }
 
 #if defined(CONFIG_CMD_PING)
+#ifndef CONFIG_LWIP
 static int do_ping(struct cmd_tbl *cmdtp, int flag, int argc,
 		   char *const argv[])
 {
@@ -475,9 +503,14 @@ static int do_ping(struct cmd_tbl *cmdtp, int flag, int argc,
 
 	return CMD_RET_SUCCESS;
 }
+#endif
 
 U_BOOT_CMD(
-	ping,	2,	1,	do_ping,
+#ifdef CONFIG_LWIP
+	ping,	2,	1, do_lwip_ping,
+#else
+	ping,	2,	1,      do_ping,
+#endif
 	"send ICMP ECHO_REQUEST to network host",
 	"pingAddress"
 );
@@ -601,6 +634,7 @@ U_BOOT_CMD(
 #endif
 
 #if defined(CONFIG_CMD_DNS)
+#ifndef CONFIG_LWIP
 int do_dns(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
 	if (argc == 1)
@@ -637,9 +671,14 @@ int do_dns(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 
 	return CMD_RET_SUCCESS;
 }
+#endif
 
 U_BOOT_CMD(
-	dns,	3,	1,	do_dns,
+#ifdef CONFIG_LWIP
+	dns,	3,	1,	do_lwip_dns,
+#else
+	dns,	3,	1,	     do_dns,
+#endif
 	"lookup the IP of a hostname",
 	"hostname [envvar]"
 );

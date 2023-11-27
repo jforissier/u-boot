@@ -683,6 +683,9 @@ restart:
 			/* cancel any ARP that may not have completed */
 			net_arp_wait_packet_ip.s_addr = 0;
 
+			if (IS_ENABLED(CONFIG_LWIP) && protocol == LWIP) {
+				ulwip_cleanup();
+			}
 			net_cleanup_loop();
 			eth_halt();
 			/* Invalidate the last protocol */

@@ -71,3 +71,5 @@ int ulwip_wget(ulong addr, char *url);
  * Returns: 0 for success, !0 if error
 */
 int ulwip_ping(char *ping_addr);
+
+void ulwip_ping_cleanup(void);

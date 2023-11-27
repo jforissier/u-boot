@@ -8,6 +8,7 @@
 #include <command.h>
 #include <fs.h>
 #include <net.h>
+#include <net/lwip.h>
 #include <net6.h>
 #include <malloc.h>
 
@@ -29,10 +30,26 @@ const char *pxe_default_paths[] = {
 static int do_get_tftp(struct pxe_context *ctx, const char *file_path,
 		       char *file_addr, ulong *sizep)
 {
+#ifdef CONFIG_LWIP
+	ulong addr;
+	char *end;
+#else
 	char *tftp_argv[] = {"tftp", NULL, NULL, NULL};
-	int ret;
 	int num_args;
+#endif
+	int ret;
 
+#ifdef CONFIG_LWIP
+	addr = hextoul(file_addr, &end);
+
+	if (ctx->use_ipv6) {
+		/* @todo: check and fix me, here */
+	}
+
+	ret = ulwip_tftp(addr, file_path);
+	if (ret)
+		return log_msg_ret("tftp", ret);
+#else
 	tftp_argv[1] = file_addr;
 	tftp_argv[2] = (void *)file_path;
 	if (ctx->use_ipv6) {
@@ -44,6 +61,7 @@ static int do_get_tftp(struct pxe_context *ctx, const char *file_path,
 
 	if (do_tftpb(ctx->cmdtp, 0, num_args, tftp_argv))
 		return -ENOENT;
+#endif
 
 	ret = pxe_get_file_size(sizep);
 	if (ret)
