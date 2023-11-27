@@ -21,6 +21,7 @@
 #include <net/pcap.h>
 #include "eth_internal.h"
 #include <eth_phy.h>
+#include <net/ulwip.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -32,6 +33,7 @@ DECLARE_GLOBAL_DATA_PTR;
 struct eth_device_priv {
 	enum eth_state_t state;
 	bool running;
+	ulwip ulwip;
 };
 
 /**
@@ -347,6 +349,13 @@ int eth_init(void)
 	return ret;
 }
 
+struct ulwip *eth_lwip_priv(struct udevice *current)
+{
+	struct eth_device_priv *priv = dev_get_uclass_priv(current);
+
+	return &priv->ulwip;
+}
+
 void eth_halt(void)
 {
 	struct udevice *current;
@@ -420,8 +429,13 @@ int eth_rx(void)
 	for (i = 0; i < ETH_PACKETS_BATCH_RECV; i++) {
 		ret = eth_get_ops(current)->recv(current, flags, &packet);
 		flags = 0;
-		if (ret > 0)
-			net_process_received_packet(packet, ret);
+		if (ret > 0) {
+			if (IS_ENABLED(CONFIG_LWIP) && ulwip_active())
+				ulwip_poll(packet, ret);
+			else
+				net_process_received_packet(packet, ret);
+		}
+
 		if (ret >= 0 && eth_get_ops(current)->free_pkt)
 			eth_get_ops(current)->free_pkt(current, packet, ret);
 		if (ret <= 0)
