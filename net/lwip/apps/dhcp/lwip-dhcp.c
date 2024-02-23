@@ -38,12 +38,20 @@ static void dhcp_tmo(void *arg)
 		int err = 0;
 
 		err -= env_set("bootfile", dhcp->boot_file_name);
+		err -= env_set("gatewayip", ip4addr_ntoa(&dhcp->offered_gw_addr));
 		err -= env_set("ipaddr", ip4addr_ntoa(&dhcp->offered_ip_addr));
 		err -= env_set("netmask", ip4addr_ntoa(&dhcp->offered_sn_mask));
 		err -= env_set("serverip", ip4addr_ntoa(&dhcp->server_ip_addr));
 		if (err)
 			log_err("error update envs\n");
 		log_info("DHCP client bound to address %s\n", ip4addr_ntoa(&dhcp->offered_ip_addr));
+		if (dhcp->offered_gw_addr.addr != 0) {
+			/*
+			 * We have received a gateway so this should be a valid
+			 * default interface for routing
+			 */
+			netif_set_default(netif);
+		}
 		free(dpriv);
 		ulwip_exit(err);
 		return;
