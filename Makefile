@@ -1873,13 +1873,6 @@ endef
 include/config/uboot.release: include/config/auto.conf FORCE
 	$(call filechk,uboot.release)
 
-initsubmodules:
-	(cd $(srctree) && \
-	if [ ! -f $(srctree)/net/lwip/lwip-external/README ]; then \
-	flock `git rev-parse --git-dir`/config git submodule init && \
-	flock `git rev-parse --git-dir`/config git submodule update; \
-	fi; )
-
 # Things we need to do before we recursively start building the kernel
 # or the modules are listed in "prepare".
 # A multi level approach is used. prepareN is processed before prepareN-1.
@@ -1903,7 +1896,7 @@ ifneq ($(KBUILD_SRC),)
 endif
 
 # prepare2 creates a makefile if using a separate output directory
-prepare2: prepare3 outputmakefile cfg initsubmodules
+prepare2: prepare3 outputmakefile cfg
 
 prepare1: prepare2 $(version_h) $(timestamp_h) $(dt_h) $(env_h) \
                    include/config/auto.conf
