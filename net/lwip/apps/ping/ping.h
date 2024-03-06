@@ -10,14 +10,14 @@ void ping_tmo(void *arg);
 	if (cond == 1) { \
 		printf("host %s is alive\n", ipaddr_ntoa(addr)); \
 		printf(" %"U32_F" ms\n", (sys_now() - ping_time)); \
-		raw_remove(pcb); \
+		ping_stop(); \
 		sys_untimeout(ping_tmo, NULL); \
 		sys_check_timeouts(); \
 		ulwip_exit(0); \
 	} else { \
 		printf("ping failed; host %s in not alive\n",\
 		       ipaddr_ntoa(addr)); \
-		raw_remove(pcb); \
+		ping_stop(); \
 		sys_untimeout(ping_tmo, NULL); \
 		sys_check_timeouts(); \
 		ulwip_exit(-1); \
