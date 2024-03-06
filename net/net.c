@@ -666,10 +666,12 @@ restart:
 		if (ulwip_active()) {
 			net_set_state(NETLOOP_CONTINUE);
 			if (!ulwip_in_loop()) {
-				if (ulwip_app_get_err())
+				if (ulwip_app_get_err()) {
 					net_set_state(NETLOOP_FAIL);
-				else
+				} else {
 					net_set_state(NETLOOP_SUCCESS);
+					ret = 0;
+				}
 				goto done;
 			}
 		}
