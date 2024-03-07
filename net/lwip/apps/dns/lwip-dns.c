@@ -20,7 +20,7 @@ static void dns_found_cb(const char *name, const ip_addr_t *ipaddr, void *callba
 
 	if (varname)
 		env_set(varname, ipstr);
-	log_info("resolved %s to %s\n",  name, ipstr);
+	printf("%s\n", ipstr);
 	ulwip_exit(0);
 }
 
