@@ -229,7 +229,6 @@ int ulwip_init(void)
 
 	ulwip = eth_lwip_priv(udev);
 	if (ulwip->init_done) {
-		log_info("init already done for %s\n", udev->name);
 		ret = eth_init();
 		if (ret)
 			return ERR_IF;
