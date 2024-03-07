@@ -9,6 +9,7 @@
 #include <console.h>
 
 #include <lwip/dhcp.h>
+#include <lwip/dns.h>
 #include <lwip/prot/dhcp.h>
 #include "lwip/timeouts.h"
 
@@ -42,6 +43,8 @@ static void dhcp_tmo(void *arg)
 		err -= env_set("ipaddr", ip4addr_ntoa(&dhcp->offered_ip_addr));
 		err -= env_set("netmask", ip4addr_ntoa(&dhcp->offered_sn_mask));
 		err -= env_set("serverip", ip4addr_ntoa(&dhcp->server_ip_addr));
+		err -= env_set("dnsip", ip4addr_ntoa(dns_getserver(0)));
+		err -= env_set("dnsip2", ip4addr_ntoa(dns_getserver(1)));
 		if (err)
 			log_err("error update envs\n");
 		log_info("DHCP client bound to address %s\n", ip4addr_ntoa(&dhcp->offered_ip_addr));
