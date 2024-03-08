@@ -11,6 +11,7 @@
 #include <lwip/dns.h>
 #include <lwip/ip_addr.h>
 
+#include <net.h>
 #include <net/ulwip.h>
 
 static void dns_found_cb(const char *name, const ip_addr_t *ipaddr, void *callback_arg)
@@ -21,6 +22,7 @@ static void dns_found_cb(const char *name, const ip_addr_t *ipaddr, void *callba
 	if (varname)
 		env_set(varname, ipstr);
 	printf("%s\n", ipstr);
+	net_set_timeout_handler(0, NULL);
 	ulwip_exit(0);
 }
 
