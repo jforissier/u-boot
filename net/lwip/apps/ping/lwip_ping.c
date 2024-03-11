@@ -37,3 +37,9 @@ int ulwip_ping(char *ping_addr)
 
 	return 0;
 }
+
+void ulwip_ping_cleanup(void)
+{
+	sys_untimeout(ping_tmo, NULL);
+	ping_stop();
+}

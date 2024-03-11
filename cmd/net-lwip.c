@@ -56,6 +56,9 @@ int ulwip_loop(void)
 
 void ulwip_cleanup(void)
 {
+#if defined(CONFIG_CMD_PING)
+	ulwip_ping_cleanup();
+#endif
 }
 #endif
 
