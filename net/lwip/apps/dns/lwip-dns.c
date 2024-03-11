@@ -17,12 +17,17 @@
 static void dns_found_cb(const char *name, const ip_addr_t *ipaddr, void *callback_arg)
 {
 	char *varname = (char *)callback_arg;
-	char *ipstr = ip4addr_ntoa(ipaddr);
+	char *ipstr;
 
+	net_set_timeout_handler(0, NULL);
+	if (!ipaddr) {
+		ulwip_exit(1);
+		return;
+	}
+	ipstr = ip4addr_ntoa(ipaddr);
 	if (varname)
 		env_set(varname, ipstr);
 	printf("%s\n", ipstr);
-	net_set_timeout_handler(0, NULL);
 	ulwip_exit(0);
 }
 
