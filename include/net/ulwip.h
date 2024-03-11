@@ -65,3 +65,5 @@ int ulwip_app_get_err(void);
  * Returns:  0 if success, !0 if error
  */
 int ulwip_loop(void);
+
+void ulwip_cleanup(void);

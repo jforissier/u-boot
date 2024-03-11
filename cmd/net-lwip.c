@@ -53,6 +53,10 @@ int ulwip_loop(void)
 	ulwip->active = 0;
 	return ret;
 }
+
+void ulwip_cleanup(void)
+{
+}
 #endif
 
 #if defined(CONFIG_CMD_PING)
