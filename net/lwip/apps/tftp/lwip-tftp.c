@@ -86,16 +86,24 @@ int ulwip_tftp(ulong addr, char *fname)
 	ip_addr_t srv;
 	int ret;
 	char *server_ip;
+	char *col;
 
 	if (!fname || addr == 0)
 		return CMD_RET_FAILURE;
 
 	size = 0;
 	daddr = addr;
-	server_ip = env_get("serverip");
-	if (!server_ip) {
-		log_err("error: serverip variable has to be set\n");
-		return CMD_RET_FAILURE;
+	col = strchr(fname, ':');
+	if (col) {
+		server_ip = fname;
+		*col = '\0';
+		fname = col + 1;
+	} else {
+		server_ip = env_get("serverip");
+		if (!server_ip) {
+			log_err("error: serverip variable has to be set\n");
+			return CMD_RET_FAILURE;
+		}
 	}
 
 	ret = ipaddr_aton(server_ip, &srv);
