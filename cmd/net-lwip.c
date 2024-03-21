@@ -93,13 +93,21 @@ int do_lwip_ping(struct cmd_tbl *cmdtp, int flag, int argc,
 int do_lwip_wget(struct cmd_tbl *cmdtp, int flag, int argc,
 		 char *const argv[])
 {
+	ulong addr = image_load_addr;
 	char *url;
 	int ret;
 
-	if (argc < 2)
+	if (argc < 2 || argc > 3)
 		return CMD_RET_USAGE;
 
-	url = argv[1];
+	if (!strncmp(argv[1], "0x", 2)) {
+		addr = hextoul(argv[1], NULL);
+		if (argc < 3)
+			return CMD_RET_USAGE;
+		url = argv[2];
+	} else {
+		url = argv[1];
+	}
 
 	ret = ulwip_init();
 	if (ret) {
@@ -107,7 +115,7 @@ int do_lwip_wget(struct cmd_tbl *cmdtp, int flag, int argc,
 		return CMD_RET_FAILURE;
 	}
 
-	ret = ulwip_wget(image_load_addr, url);
+	ret = ulwip_wget(addr, url);
 	if (ret) {
 		log_err("lwip_wget err %d\n", ret);
 		return CMD_RET_FAILURE;

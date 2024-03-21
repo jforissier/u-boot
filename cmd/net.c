@@ -192,8 +192,8 @@ int do_lwip_wget(struct cmd_tbl *cmdtp, int flag, int argc,
 
 U_BOOT_CMD(
 	wget,   3,      1, do_lwip_wget,
-	"boot image via network using HTTP protocol",
-	"[loadAddress] [[hostIPaddr:]path and image name]"
+	"download using HTTP and write to memory (default: ${loadaddr})",
+	"[loadAddress] URL"
 );
 #endif
 
