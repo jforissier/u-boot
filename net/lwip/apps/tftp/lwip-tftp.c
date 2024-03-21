@@ -29,6 +29,9 @@ static void *tftp_open(const char *fname, const char *mode, u8_t is_write)
 
 static void tftp_close(void *handle)
 {
+	if (ulwip_app_get_err())
+		return;
+
 	log_info("\ndone\n");
 	log_info("Bytes transferred = %ld (0x%lx hex)\n", size, size);
 
@@ -69,6 +72,7 @@ static void tftp_error(void *handle, int err, const char *msg, int size)
 	memcpy(message, msg, LWIP_MIN(sizeof(message) - 1, (size_t)size));
 
 	log_info("TFTP error: %d (%s)", err, message);
+	ulwip_exit(-1);
 }
 
 static const struct tftp_context tftp = {
