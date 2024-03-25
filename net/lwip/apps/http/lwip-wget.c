@@ -55,6 +55,7 @@ static void httpc_result(void *arg, httpc_result_t httpc_result, u32_t rx_conten
 static int parse_url(char *url, char *host, u16 *port, char **path)
 {
 	char *p, *pp;
+	long lport;
 
 	p = strstr(url, "http://");
 	if (!p)
@@ -63,7 +64,9 @@ static int parse_url(char *url, char *host, u16 *port, char **path)
 	p += strlen("http://");
 
 	/* parse hostname */
-	pp = strchr(p, '/');
+	pp = strchr(p, ':');
+	if (!pp)
+		pp = strchr(p, '/');
 	if (!pp)
 		return -ENOENT;
 
@@ -72,7 +75,21 @@ static int parse_url(char *url, char *host, u16 *port, char **path)
 
 	memcpy(host, p, pp - p);
 	host[pp - p + 1] = '\0';
-	*port = HTTP_PORT_DEFAULT;
+
+	if (*pp == ':') {
+		/* parse port number */
+		p = pp + 1;
+		lport = simple_strtol(p, &pp, 10);
+		if (pp && *pp != '/')
+			return -ENOENT;
+		if (lport > 65535)
+			return -ENOENT;
+		*port = (u16)lport;
+	} else {
+		*port = HTTP_PORT_DEFAULT;
+	}
+	if (*pp != '/')
+		return -ENOENT;
 	*path = pp;
 
 	return 0;
