@@ -681,10 +681,11 @@ restart:
 		if (ctrlc()) {
 			/* cancel any ARP that may not have completed */
 			net_arp_wait_packet_ip.s_addr = 0;
-
+#ifdef CONFIG_LWIP
 			if (protocol == LWIP) {
 				ulwip_cleanup();
 			}
+#endif
 			net_cleanup_loop();
 			eth_halt();
 			/* Invalidate the last protocol */
