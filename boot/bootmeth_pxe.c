@@ -118,9 +118,15 @@ static int extlinux_pxe_read_file(struct udevice *dev, struct bootflow *bflow,
 				  const char *file_path, ulong addr,
 				  ulong *sizep)
 {
+#ifndef CONFIG_LWIP
+	char *tftp_argv[] = {"tftp", NULL, NULL, NULL};
+	struct pxe_context *ctx = dev_get_priv(dev);
+	char file_addr[17];
+#endif
 	ulong size;
 	int ret;
 
+#ifdef CONFIG_LWIP
 	ret = ulwip_init();
 	if (ret)
 		return log_msg_ret("ulwip_init", ret);
@@ -132,6 +138,14 @@ static int extlinux_pxe_read_file(struct udevice *dev, struct bootflow *bflow,
 	ret = ulwip_loop();
 	if (ret)
 		return log_msg_ret("ulwip_loop", ret);
+#else
+	sprintf(file_addr, "%lx", addr);
+	tftp_argv[1] = file_addr;
+	tftp_argv[2] = (void *)file_path;
+
+	if (do_tftpb(ctx->cmdtp, 0, 3, tftp_argv))
+		return -ENOENT;
+#endif
 
 	ret = pxe_get_file_size(&size);
 	if (ret)
