@@ -129,7 +129,9 @@ obj-$(CONFIG_CMD_MUX) += mux.o
 obj-$(CONFIG_CMD_NAND) += nand.o
 obj-$(CONFIG_CMD_NET) += net.o
 obj-$(CONFIG_ENV_SUPPORT) += nvedit.o
+ifneq ($(CONFIG_LWIP),)
 obj-$(CONFIG_CMD_NET) += net-lwip.o
+endif
 obj-$(CONFIG_CMD_NVEDIT_EFI) += nvedit_efi.o
 obj-$(CONFIG_CMD_ONENAND) += onenand.o
 obj-$(CONFIG_CMD_OSD) += osd.o
