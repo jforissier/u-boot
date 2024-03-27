@@ -430,7 +430,7 @@ int eth_rx(void)
 		ret = eth_get_ops(current)->recv(current, flags, &packet);
 		flags = 0;
 		if (ret > 0) {
-			if (ulwip_active())
+			if (IS_ENABLED(CONFIG_LWIP) && ulwip_active())
 				ulwip_poll(packet, ret);
 			else
 				net_process_received_packet(packet, ret);
