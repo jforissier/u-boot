@@ -465,7 +465,7 @@ int net_loop(enum proto_t protocol)
 
 	bootstage_mark_name(BOOTSTAGE_ID_ETH_START, "eth_start");
 	net_init();
-	if (!ulwip_active()) {
+	if (!IS_ENABLED(CONFIG_LWIP) || !ulwip_active()) {
 		if (eth_is_on_demand_init()) {
 			eth_halt();
 			eth_set_current();
@@ -647,7 +647,8 @@ restart:
 	 */
 	for (;;) {
 		schedule();
-		if (!ulwip_active() && (arp_timeout_check() > 0))
+		if ((!IS_ENABLED(CONFIG_LWIP) || !ulwip_active()) &&
+		    (arp_timeout_check() > 0))
 			time_start = get_timer(0);
 
 		if (IS_ENABLED(CONFIG_IPV6)) {
@@ -663,7 +664,7 @@ restart:
 		 */
 		eth_rx();
 
-		if (ulwip_active()) {
+		if (IS_ENABLED(CONFIG_LWIP) && ulwip_active()) {
 			net_set_state(NETLOOP_CONTINUE);
 			if (!ulwip_in_loop()) {
 				if (ulwip_app_get_err()) {
