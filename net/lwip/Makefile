@@ -37,7 +37,7 @@ obj-$(CONFIG_NET) += lwip-external/src/core/ipv4/acd.o \
         lwip-external/src/core/ipv4/ip4.o \
         lwip-external/src/core/ipv4/ip4_addr.o
 # IPv6
-obj-$(CONFIG_NET) += lwip-external/src/core/ipv6/dhcp6.o \
+obj-$(_UNUSED_CONFIG_NET) += lwip-external/src/core/ipv6/dhcp6.o \
         lwip-external/src/core/ipv6/ethip6.o \
         lwip-external/src/core/ipv6/icmp6.o \
         lwip-external/src/core/ipv6/inet6.o \
@@ -47,7 +47,7 @@ obj-$(CONFIG_NET) += lwip-external/src/core/ipv6/dhcp6.o \
         lwip-external/src/core/ipv6/mld6.o \
         lwip-external/src/core/ipv6/nd6.o
 # API
-obj-$(CONFIG_NET) += lwip-external/src/api/api_lib.o \
+obj-$(_UNUSED_CONFIG_NET_) += lwip-external/src/api/api_lib.o \
 	lwip-external/src/api/api_msg.o \
 	lwip-external/src/api/err.o \
 	lwip-external/src/api/if_api.o \
