@@ -347,7 +347,9 @@ void net_auto_load(void)
 		}
 		return;
 	}
+#if !defined(CONFIG_LWIP)
 	tftp_start(TFTPGET);
+#endif
 }
 
 static int net_init_loop(void)
@@ -427,7 +429,7 @@ int net_init(void)
 
 		/* Only need to setup buffer pointers once. */
 		first_call = 0;
-		if (IS_ENABLED(CONFIG_PROT_TCP))
+		if (IS_ENABLED(CONFIG_PROT_TCP) && !IS_ENABLED(CONFIG_LWIP))
 			tcp_set_tcp_state(TCP_CLOSED);
 	}
 
@@ -444,7 +446,7 @@ int net_loop(enum proto_t protocol)
 	int ret = -EINVAL;
 	enum net_loop_state prev_net_state = net_state;
 
-#if defined(CONFIG_CMD_PING)
+#if defined(CONFIG_CMD_PING) && !defined(CONFIG_LWIP)
 	if (protocol != PING)
 		net_ping_ip.s_addr = 0;
 #endif
@@ -516,8 +518,10 @@ restart:
 #ifdef CONFIG_CMD_TFTPPUT
 		case TFTPPUT:
 #endif
+#if !defined(CONFIG_LWIP)
 			/* always use ARP to get server ethernet address */
 			tftp_start(protocol);
+#endif
 			break;
 #endif
 #ifdef CONFIG_CMD_TFTPSRV
@@ -560,7 +564,7 @@ restart:
 			rarp_request();
 			break;
 #endif
-#if defined(CONFIG_CMD_PING)
+#if defined(CONFIG_CMD_PING) && !defined(CONFIG_LWIP)
 		case PING:
 			ping_start();
 			break;
@@ -575,7 +579,7 @@ restart:
 			nfs_start();
 			break;
 #endif
-#if defined(CONFIG_CMD_WGET)
+#if defined(CONFIG_CMD_WGET) && !defined(CONFIG_LWIP)
 		case WGET:
 			wget_start();
 			break;
@@ -590,7 +594,7 @@ restart:
 			nc_start();
 			break;
 #endif
-#if defined(CONFIG_CMD_DNS)
+#if defined(CONFIG_CMD_DNS) && !defined(CONFIG_LWIP)
 		case DNS:
 			dns_start();
 			break;
@@ -971,7 +975,7 @@ int net_send_ip_packet(uchar *ether, struct in_addr dest, int dport, int sport,
 				   payload_len);
 		pkt_hdr_size = eth_hdr_size + IP_UDP_HDR_SIZE;
 		break;
-#if defined(CONFIG_PROT_TCP)
+#if defined(CONFIG_PROT_TCP) && !defined(CONFIG_LWIP)
 	case IPPROTO_TCP:
 		pkt_hdr_size = eth_hdr_size
 			+ tcp_set_tcp_header(pkt + eth_hdr_size, dport, sport,
@@ -1204,7 +1208,7 @@ static void receive_icmp(struct ip_udp_hdr *ip, int len,
 		       &icmph->un.gateway);
 		break;
 	default:
-#if defined(CONFIG_CMD_PING)
+#if defined(CONFIG_CMD_PING) && !defined(CONFIG_LWIP)
 		ping_receive(et, ip, len);
 #endif
 #ifdef CONFIG_CMD_TFTPPUT
@@ -1412,7 +1416,7 @@ void net_process_received_packet(uchar *in_packet, int len)
 		if (ip->ip_p == IPPROTO_ICMP) {
 			receive_icmp(ip, len, src_ip, et);
 			return;
-#if defined(CONFIG_PROT_TCP)
+#if defined(CONFIG_PROT_TCP) && !defined(CONFIG_LWIP)
 		} else if (ip->ip_p == IPPROTO_TCP) {
 			debug_cond(DEBUG_DEV_PKT,
 				   "TCP PH (to=%pI4, from=%pI4, len=%d)\n",
@@ -1501,7 +1505,7 @@ static int net_check_prereq(enum proto_t protocol)
 {
 	switch (protocol) {
 		/* Fall through */
-#if defined(CONFIG_CMD_PING)
+#if defined(CONFIG_CMD_PING) && !defined(CONFIG_LWIP)
 	case PING:
 		if (net_ping_ip.s_addr == 0) {
 			puts("*** ERROR: ping address not given\n");

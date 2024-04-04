@@ -116,13 +116,13 @@
 #define PBUF_POOL_SIZE                  8
 
 #define LWIP_ARP                        1
-#define ARP_TABLE_SIZE			10
-#define ARP_QUEUEING			1
+#define ARP_TABLE_SIZE                  1
+#define ARP_QUEUEING                    0
 
 #define IP_FORWARD                      0
 #define IP_OPTIONS_ALLOWED              1
-#define IP_REASSEMBLY                   1
-#define IP_FRAG                         1
+#define IP_REASSEMBLY                   0
+#define IP_FRAG                         0
 #define IP_REASS_MAXAGE                 3
 #define IP_REASS_MAX_PBUFS              4
 #define IP_FRAG_USES_STATIC_BUF         0
@@ -144,6 +144,7 @@
 #define LWIP_IGMP                       0
 
 #define LWIP_DNS                        1
+#define DNS_TABLE_SIZE                  1
 
 #define LWIP_UDP                        1
 
@@ -168,7 +169,7 @@
 
 #define LWIP_TCPIP_CORE_LOCKING		0
 
-#define LWIP_NETIF_LOOPBACK		1
+#define LWIP_NETIF_LOOPBACK		0
 
 /* use malloc instead of pool */
 #define MEMP_MEM_MALLOC                 1
