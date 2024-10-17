@@ -27,7 +27,7 @@ static int sb_lwip_eth_send(struct udevice *dev, void *packet, int length)
 {
 	debug("eth_sandbox_lwip: Send packet %d\n", length);
 
-	return -ENOTSUPP;
+	return -EOPNOTSUPP;
 }
 
 static int sb_lwip_eth_recv(struct udevice *dev, int flags, uchar **packetp)
