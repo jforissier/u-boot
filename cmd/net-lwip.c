@@ -39,7 +39,8 @@ U_BOOT_CMD(
 #if defined(CONFIG_CMD_WGET)
 U_BOOT_CMD(
 	wget,   3,      1,      do_wget,
-	"boot image via network using HTTP protocol",
-	"[loadAddress] URL"
+	"boot image via network using HTTP/HTTPS protocol",
+	"[loadAddress] url\n"
+	"wget [loadAddress] [host:]path"
 );
 #endif
