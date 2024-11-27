@@ -1,0 +1,9 @@
+    generate_hash_ppk:
+    {
+    [pskfile] primary.pem
+    [sskfile] secondary.pem
+     [ bootloader,
+       destination_cpu = a53-0,
+       authentication = rsa
+     ] zynqmp_fsbl.elf
+    }

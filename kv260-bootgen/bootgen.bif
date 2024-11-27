@@ -1,0 +1,27 @@
+    the_ROM_image:
+    {
+    [fsbl_config] bh_auth_enable
+    [auth_params] ppk_select=0
+    [pskfile] primary.pem
+    [sskfile] secondary.pem
+    [ bootloader,
+      destination_cpu=a53-0,
+      authentication=rsa
+    ] zynqmp_fsbl.elf
+    [ destination_cpu=a53-0,
+      exception_level=el-3,
+      trustzone=secure,
+      authentication=rsa
+    ] bl31.elf
+    [ destination_cpu = pmu,
+     authentication = rsa
+    ] pmufw.elf
+    [ destination_cpu=a53-0,
+      load=0x00100000,
+      authentication=rsa
+    ] fit-dtb.blob
+    [ destination_cpu=a53-0,
+      exception_level=el-2,
+      authentication=rsa
+    ] u-boot.elf
+    }
