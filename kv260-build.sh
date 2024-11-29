@@ -6,7 +6,9 @@ set -e
 	make xilinx_zynqmp_kria_defconfig
 }
 
-make -j$(nproc) CROSS_COMPILE="ccache aarch64-linux-gnu-"
+grep -q CONFIG_TRACE=y .config && ftrace_opt="FTRACE=1"
+
+make -j$(nproc) CROSS_COMPILE="ccache aarch64-linux-gnu-" ${ftrace_opt}
 
 cp u-boot.elf kv260-bootgen
 cd kv260-bootgen
