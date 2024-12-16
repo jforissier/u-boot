@@ -60,7 +60,9 @@ sinclude $(srctree)/board/$(BOARDDIR)/config.mk	# include board specific rules
 endif
 
 ifdef FTRACE
+ifndef CONFIG_SPL_BUILD
 PLATFORM_CPPFLAGS += -finstrument-functions -DFTRACE
+endif
 endif
 
 #########################################################################
