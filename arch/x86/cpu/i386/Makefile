@@ -9,3 +9,4 @@ ifndef CONFIG_TPL_BUILD
 obj-y += interrupt.o
 endif
 obj-y += setjmp.o
+obj-$(CONFIG_COROUTINES) += co_switch.o
