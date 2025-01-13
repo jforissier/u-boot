@@ -7,10 +7,12 @@
 
 #define LOG_CATEGORY LOGC_EFI
 
+#include <coroutines.h>
 #include <efi_loader.h>
 #include <efi_variable.h>
 #include <log.h>
 #include <asm-generic/unaligned.h>
+#include <stdlib.h>
 
 #define OBJ_LIST_NOT_INITIALIZED 1
 
@@ -215,6 +217,46 @@ out:
 	return -1;
 }
 
+#if CONFIG_IS_ENABLED(COROUTINES)
+
+static void efi_disks_register_co(void)
+{
+	efi_status_t ret;
+
+	if (efi_obj_list_initialized != OBJ_LIST_NOT_INITIALIZED)
+		goto out;
+
+	/*
+	 * Probe block devices to find the ESP.
+	 * efi_disks_register() must be called before efi_init_variables().
+	 */
+	ret = efi_disks_register();
+	if (ret != EFI_SUCCESS)
+		efi_obj_list_initialized = ret;
+out:
+	co_exit();
+}
+
+static void efi_tcg2_register_co(void)
+{
+	efi_status_t ret = EFI_SUCCESS;
+
+	if (efi_obj_list_initialized != OBJ_LIST_NOT_INITIALIZED)
+		goto out;
+
+	if (IS_ENABLED(CONFIG_EFI_TCG2_PROTOCOL)) {
+		ret = efi_tcg2_register();
+		if (ret != EFI_SUCCESS)
+			efi_obj_list_initialized = ret;
+	}
+out:
+	co_exit();
+}
+
+extern int udelay_yield;
+
+#endif /* COROUTINES */
+
 /**
  * efi_init_obj_list() - Initialize and populate EFI object list
  *
@@ -223,6 +265,12 @@ out:
 efi_status_t efi_init_obj_list(void)
 {
 	efi_status_t ret = EFI_SUCCESS;
+#if CONFIG_IS_ENABLED(COROUTINES)
+	struct co_stack *stk = NULL;
+	struct co *main_co = NULL;
+	struct co *co1 = NULL;
+	struct co *co2 = NULL;
+#endif
 
 	/* Initialize once only */
 	if (efi_obj_list_initialized != OBJ_LIST_NOT_INITIALIZED)
@@ -231,6 +279,53 @@ efi_status_t efi_init_obj_list(void)
 	/* Set up console modes */
 	efi_setup_console_size();
 
+#if CONFIG_IS_ENABLED(COROUTINES)
+	main_co = co_create(NULL, NULL, 0, NULL, NULL);
+	if (!main_co) {
+		ret = EFI_OUT_OF_RESOURCES;
+		goto out;
+	}
+
+	stk = co_stack_new(8192);
+	if (!stk) {
+		ret = EFI_OUT_OF_RESOURCES;
+		goto out;
+	}
+
+	co1 = co_create(main_co, stk, 0, efi_disks_register_co, NULL);
+	if (!co1) {
+		ret = EFI_OUT_OF_RESOURCES;
+		goto out;
+	}
+
+	co2 = co_create(main_co, stk, 0, efi_tcg2_register_co, NULL);
+	if (!co2) {
+		ret = EFI_OUT_OF_RESOURCES;
+		goto out;
+	}
+
+	udelay_yield = 0xCAFEDECA;
+	do {
+		if (!co1->done)
+			co_resume(co1);
+		if (!co2->done)
+			co_resume(co2);
+	} while (!(co1->done && co2->done));
+	udelay_yield = 0;
+
+	co_stack_destroy(stk);
+	co_destroy(main_co);
+	co_destroy(co1);
+	co_destroy(co2);
+	stk = NULL;
+	main_co = co1 = co2 = NULL;
+
+	if (efi_obj_list_initialized != OBJ_LIST_NOT_INITIALIZED) {
+		/* Some kind of error was saved by a coroutine */
+		ret = efi_obj_list_initialized;
+		goto out;
+	}
+#else
 	/*
 	 * Probe block devices to find the ESP.
 	 * efi_disks_register() must be called before efi_init_variables().
@@ -238,6 +333,13 @@ efi_status_t efi_init_obj_list(void)
 	ret = efi_disks_register();
 	if (ret != EFI_SUCCESS)
 		goto out;
+
+	if (IS_ENABLED(CONFIG_EFI_TCG2_PROTOCOL)) {
+		ret = efi_tcg2_register();
+		if (ret != EFI_SUCCESS)
+			efi_obj_list_initialized = ret;
+	}
+#endif
 
 	/* Initialize variable services */
 	ret = efi_init_variables();
@@ -279,10 +381,6 @@ efi_status_t efi_init_obj_list(void)
 	}
 
 	if (IS_ENABLED(CONFIG_EFI_TCG2_PROTOCOL)) {
-		ret = efi_tcg2_register();
-		if (ret != EFI_SUCCESS)
-			goto out;
-
 		ret = efi_tcg2_do_initial_measurement();
 		if (ret == EFI_SECURITY_VIOLATION)
 			goto out;
@@ -355,6 +453,13 @@ efi_status_t efi_init_obj_list(void)
 	    !IS_ENABLED(CONFIG_EFI_CAPSULE_ON_DISK_EARLY))
 		ret = efi_launch_capsules();
 out:
+#if CONFIG_IS_ENABLED(COROUTINES)
+	co_stack_destroy(stk);
+	co_destroy(main_co);
+	co_destroy(co1);
+	co_destroy(co2);
 	efi_obj_list_initialized = ret;
+#endif
+
 	return ret;
 }
