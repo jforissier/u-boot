@@ -1226,6 +1226,16 @@ config PHANDLE_CHECK_SEQ
 	  enable this config option to distinguish them using
 	  phandles in fdtdec_get_alias_seq() function.
 
+config COROUTINES
+	bool "Enable coroutine support"
+	help
+	  Coroutines allow to implement a simple form of cooperative
+	  multi-tasking. The main thread of execution registers one or
+	  more functions as coroutine entry points, then it schedules one
+	  of them. At any point the scheduled coroutine may yield, that is,
+	  suspend its execution and return back to the main thread. At this
+	  point another coroutine may be scheduled and so on until all the
+	  registered coroutines are done.
 endmenu
 
 source "lib/fwu_updates/Kconfig"
