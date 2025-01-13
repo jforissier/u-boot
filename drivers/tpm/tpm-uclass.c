@@ -6,6 +6,7 @@
 
 #define LOG_CATEGORY UCLASS_TPM
 
+#include <coroutines.h>
 #include <dm.h>
 #include <log.h>
 #include <time.h>
@@ -131,6 +132,7 @@ int tpm_xfer(struct udevice *dev, const uint8_t *sendbuf, size_t send_size,
 			return ret;
 		}
 
+		co_yield();
 		mdelay(priv->retry_time_ms);
 		if (get_timer(start) > stop) {
 			ret = -ETIMEDOUT;

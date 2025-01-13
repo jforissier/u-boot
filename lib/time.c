@@ -17,6 +17,7 @@
 #include <asm/global_data.h>
 #include <asm/io.h>
 #include <linux/delay.h>
+#include <coroutines.h>
 
 #ifndef CFG_WD_PERIOD
 # define CFG_WD_PERIOD	(10 * 1000 * 1000)	/* 10 seconds default */
@@ -190,12 +191,16 @@ void __weak __udelay(unsigned long usec)
 
 /* ------------------------------------------------------------------------- */
 
+int udelay_yield;
+
 void udelay(unsigned long usec)
 {
 	ulong kv;
 
 	do {
 		schedule();
+		if (udelay_yield == 0xCAFEDECA)
+			co_yield();
 		kv = usec > CFG_WD_PERIOD ? CFG_WD_PERIOD : usec;
 		__udelay(kv);
 		usec -= kv;
