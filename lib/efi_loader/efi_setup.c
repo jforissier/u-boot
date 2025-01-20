@@ -14,6 +14,8 @@
 #include <asm-generic/unaligned.h>
 #include <stdlib.h>
 
+#include <time.h>
+
 #define OBJ_LIST_NOT_INITIALIZED 1
 
 efi_status_t efi_obj_list_initialized = OBJ_LIST_NOT_INITIALIZED;
@@ -264,6 +266,8 @@ efi_status_t efi_init_obj_list(void)
 	struct co *co1 = NULL;
 	struct co *co2 = NULL;
 #endif
+	unsigned long t0 = timer_get_us();
+	unsigned long t1;
 
 	/* Initialize once only */
 	if (efi_obj_list_initialized != OBJ_LIST_NOT_INITIALIZED)
@@ -456,5 +460,7 @@ out:
 	efi_obj_list_initialized = ret;
 #endif
 
+	t1 = timer_get_us();
+	printf("%s() took %lu ms\n", __func__, (t1 - t0)/1000);
 	return ret;
 }
