@@ -1,0 +1,33 @@
+This is a rework of the "Coroutines" RFC series [1] which allowed to
+run functions in parallel, and more specifically the ones that rely
+on udelay() to poll hardware and wait for some event to happen. With
+that we have shown that some intializations could be sped up
+(namely, efi_init_obj_list()).
+
+In this new version, cooperative multitasking is introduced via thread
+objects. The goal and the basic concepts are the same but threads are
+likely more familiar to programmers. The custom assembly code that was
+present in the coroutines series is replaced by setjmp()/longjmp(). As
+a result, supporting multiple architectures is much easier. The API is
+more self-contained: the main thread just needs to create the threads,
+call a schedule function, then cleanup. Threads do not resume the main
+thread when they yield the processor to another thread; they switch to
+the new thread directly. Another major change is the simplification of
+the stack management. Now each thread has its own stack, there is no
+stack sharing anymore.
+
+The code is inspired from the barebox threads [2]. This depends on a
+non-standard extension to the setjmp()/initjmp() pair: initjmp().
+The new function is added in several patches, one for each architecture
+that supports HAVE_SETJMP. A new symbol is defined: HAVE_INITJMP. Two
+tests, one for initjmp() and one for uthread scheduling, are added to
+the lib suite.
+
+After introducing uthreads and making udelay() a thread re-scheduling
+point, the USB stack initialization is modified to benefit from
+concurrency when UTHREAD is enabled, where uthreads are used in
+usb_init() to initialize and scan multiple busses at the same time.
+The code was tested on arm64 and arm QEMU with 4 simulated XHCI buses
+and some devices. The USB scan takes 2.2 s instead of 5.6 s. Tested on
+i.MX93 EVK with two USB hubs, one ethernet adapter and one webcam on
+each: "usb start" takes 2.4 s instead of 4.6 s.
