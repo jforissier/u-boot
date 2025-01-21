@@ -24,6 +24,7 @@
 #include <watchdog.h>
 #include <asm/global_data.h>
 #include <linux/delay.h>
+#include <uthread.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -508,6 +509,7 @@ int fgetc(int file)
 		 */
 		for (;;) {
 			schedule();
+			uthread_schedule();
 			if (CONFIG_IS_ENABLED(CONSOLE_MUX)) {
 				/*
 				 * Upper layer may have already called tstc() so
