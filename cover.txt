@@ -1,0 +1,69 @@
+v1: RFC
+v2: Sent 25-Feb-2025 (https://lists.denx.de/pipermail/u-boot/2025-February/581626.html)
+v3: TBD
+- "uthread: add coop ...": user to pass struct uthread (optional?)
+https://lists.denx.de/pipermail/u-boot/2025-February/582128.html
+- "lib: time: hook uthread_schedule() into udelay()": provide
+numbers in the commit description. Ref:
+https://lists.denx.de/pipermail/u-boot/2025-February/582135.html
+- Schedule the main thread more often to avoid starvation (seen with
+spawn and the console dropping input). Reference:
+https://lists.denx.de/pipermail/u-boot/2025-February/582002.html
+
+
+Uthreads
+
+This series introduces threads and uses them to improve the performance
+of the USB bus scanning code and to implement background jobs in the
+shell via two new commands: 'spawn' and 'wait'.
+
+The threading framework is called 'uthread' and is inspired from the
+barebox threads [1]. setjmp() and longjmp() are used to save and
+restore contexts, as well as a non-standard extension called initjmp().
+This new function is added in several patches, one for each
+architecture that supports HAVE_SETJMP. A new symbol is defined:
+HAVE_INITJMP. Two tests, one for initjmp() and one for the uthread
+scheduling, are added to the lib suite. NOTE: the SANDBOX version of
+initjmp() appears to have problems and needs to be worked on.
+
+[1] https://github.com/barebox/barebox/blob/master/common/bthread.c
+
+After introducing threads and making schedule() and udelay() a thread
+re-scheduling point, the USB stack initialization is modified to benefit
+from concurrency when UTHREAD is enabled, where uthreads are used in
+usb_init() to initialize and scan multiple busses at the same time.
+The code was tested on arm64 and arm QEMU with 4 simulated XHCI buses
+and some devices. On this platform the USB scan takes 2.2 s instead of
+5.6 s. Tested on i.MX93 EVK with two USB hubs, one ethernet adapter and
+one webcam on each, "usb start" takes 2.4 s instead of 4.6 s.
+
+Finally, the spawn and wait commands are introduced, allowing the use of
+threads from the shell. Tested on the i.MX93 EVK with a spinning HDD
+connected to USB1 and the network connected to ENET1. The USB plus DHCP
+init sequence "spawn usb start; spawn dhcp; wait" takes 4.5 seconds
+instead of 8 seconds for "usb start; dhcp".
+
+Changes in v3:
+- Move setjmp.h to include/asm-generic
+- HAVE_INITJMP now depends on HAVE_SETJMP. Provide proper Sphinx-like
+documentaion for initjmp().
+- Add Sphinx doc to all functions in uthread.h (moved from uthread.c).
+- Document struct uthread and its components
+- Add include/uthread.h to doc/api.
+- Switch spawn and wait tests from DM_TEST() to CMD_TEST()
+- test/lib/initjmp.c: change SPDX license tag from GPL2.0+ to
+GPL-2.0-or-later
+- Apply review tags
+
+Changes in v2:
+- Rewrite the cover letter, do not mention the older coroutines series
+- Rebased onto next
+- UTHREAD_STACK_SIZE is set to 32768 (32 KiB) instead of 32178
+- Remove uthread_free_all() and let threads be freed as they terminate
+by uthread_schedule()
+- Add function descriptions
+- Add documentation (doc/develop/uthread.rst)
+- Explain initjmp() in the description of "arch: introduce symbol
+HAVE_INITJMP".
+- Add thread groups (uthread_grp_new_id() and uthread_grp_done())
+- Add the spawn and wait commands
