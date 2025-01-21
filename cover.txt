@@ -1,0 +1,116 @@
+This series introduces a simple coroutines framework and uses it to
+speed up the efi_init_obj_list() function. It is just an example to
+trigger discussions; hopefully other places in U-Boot can benefit from
+a similar treatment. Suggestions are welcome.
+
+I came up with this idea after analyzing some profiling data (ftrace)
+taken during the execution of the "printenv -e" command on a Kria KV260
+board. When the command is first invoked, efi_init_obj_list() is called
+which takes a significant amount of time (2.872 seconds). This time can
+be split into 0.570 s for efi_disks_register(), 0.811 s for
+efi_tcg2_register() and 1.418 s for efi_tcg2_do_initial_measurement().
+All the other child functions are much quicker. Another interesting
+observation is that a large part of the time is actually spent waiting
+in __udelay(). More precisely:
+- For efi_disks_register(): 421 ms / 570 ms = 73.8 % spent in __udelay()
+- For efi_tcg2_register(): 805 ms / 811 ms = 99.1 % spent in __udelay()
+- For efi_tcg2_do_initial_measurement(): 1395.025 ms / 1418.372 ms =
+  98.3 % spent in __udelay()
+
+Given the above data, it is reasonable to think that a nice speedup
+could be obtained if these functions could somehow be run in parallel.
+efi_tcg2_do_initial_measurement() unfortunately needs to be excluded
+because it depends on the first two. But efi_disks_register() and
+efi_tcg2_register() are clearly independant and are therefore good
+candidates for concurrent execution.
+
+So, I considered two options:
+
+- Spin up a secondary core to take care of one function while the other
+one runs on the main core
+- Introduce some kind of software scheduling
+
+I quickly ruled out the first one for several reasons: initializing a
+secondary core is typically quite hardware-specific, it would not scale
+well if more functions than available cores would need to be run in
+parallel, it would make debugging harder etc.
+Software scheduling however can be accomplished quite easily, especially
+since we don't need to consider preemptive multitasking. Coroutines [1]
+for example can perfectly do the job. They provide a way to save and
+restore the execution context (registers and stack). Here is how it
+look like:
+
+static void do_some_work(int v)
+{
+	int i;
+
+	for (i = 0; i < 5; i++) {
+		printf("%d", v);
+		/* Save context and resume main thread */
+		co_yield();
+	}
+}
+
+static void co1(void *arg)
+{
+	do_some_work(1);
+	/* Mark coroutine as "done" and resume main thread */
+	co_exit();
+}
+
+static void co2(void *arg)
+{
+	do_some_work(2);
+	co_exit();
+}
+
+void main_thread(void)
+{
+	struct co *co1, *co2;
+
+	co1 = co_create(co1, ...);
+	co2 = co_create(co2, ...);
+
+	do {
+		printf("A");
+		if (!co1->done) {
+			/* Invoke or resume first coroutine */
+			co_resume(co1);
+		}
+		printf("B");
+		if (!cor21->done) {
+			/* Invoke or resume second coroutine */
+			co_resume(co2);
+		}
+	} while (!(co1->done && co2->done));
+
+	/* At this point, co1 and co2 have both called co_exit() */
+}
+
+The above example would print: A1B2A1B2A1B2A1B2A1B2.
+
+- The first commit introduces the coroutine framework, loosely based on
+libaco [2]. The code was simplified and reformatted to better suit
+U-Boot.
+- The second commit modifies efi_init_obj_list() in order to turn
+efi_disks_register() and efi_tcg2_register() into coroutines when
+COROUTINES in enabled. On a KV260 board with a SD card inserted, this
+saves about .6 second (2.2 s instead of 2.8 s).
+- The third commit applies coroutines to usb_init(), which can
+significantly reduce the time it takes to scan multiple buses. Tested
+on arm64 QEMU with 4 XHCI buses: the USB scan takes  2.2 s instead of
+5.8 s. Tested on i.MX93 EVK with one SSD and one HDD: "usb start" takes
+4.6 s instead of 5.2 s.
+
+[1] https://en.wikipedia.org/wiki/Coroutine
+[2] https://github.com/hnes/libaco/
+
+Changes in v3
+- Coroutines are used for usb_init_bus() in addition to usb_scan_bus()
+
+Changes in v2
+
+- Remove x86 and x86_64 arch code since it is untested
+- Add missing SPDX license tag to arch/arm/cpu/armv8/co_switch.S
+- Change Apache-2.0 SPDX license tag to "Apache-2.0 OR GPL-2.0-or-later"
+- Apply coroutines to the USB bus scan in usb_init()
