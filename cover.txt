@@ -1,0 +1,91 @@
+v1: RFC
+v2: Sent 25-Feb-2025 (https://lists.denx.de/pipermail/u-boot/2025-February/581626.html)
+v3: Sent 04-Mar-2025 (https://lists.denx.de/pipermail/u-boot/2025-March/582421.html)
+v4: TBD
+
+Uthreads
+
+This series introduces threads and uses them to improve the performance
+of the USB bus scanning code and to implement background jobs in the
+shell via two new commands: 'spawn' and 'wait'. Note that it needs to
+be applied on top of "common: clean up usage of structure jmp_buf_data"
+by Heinrich S. [1].
+
+The threading framework is called 'uthread' and is inspired from the
+barebox threads [2]. setjmp() and longjmp() are used to save and
+restore contexts, as well as a non-standard extension called initjmp().
+This new function is added in several patches, one for each
+architecture that supports HAVE_SETJMP. A new symbol is defined:
+HAVE_INITJMP. Two tests, one for initjmp() and one for the uthread
+scheduling, are added to the lib suite. NOTE: the SANDBOX version of
+initjmp() appears to have problems and needs to be worked on.
+
+After introducing threads and making schedule() and udelay() a thread
+re-scheduling point, the USB stack initialization is modified to benefit
+from concurrency when UTHREAD is enabled, where uthreads are used in
+usb_init() to initialize and scan multiple busses at the same time.
+The code was tested on arm64 and arm QEMU with 4 simulated XHCI buses
+and some devices. On this platform the USB scan takes 2.2 s instead of
+5.6 s. Tested on i.MX93 EVK with two USB hubs, one ethernet adapter and
+one webcam on each, "usb start" takes 2.4 s instead of 4.6 s.
+
+Finally, the spawn and wait commands are introduced, allowing the use of
+threads from the shell. Tested on the i.MX93 EVK with a spinning HDD
+connected to USB1 and the network connected to ENET1. The USB plus DHCP
+init sequence "spawn usb start; spawn dhcp; wait" takes 4.5 seconds
+instead of 8 seconds for "usb start; dhcp".
+
+[1] https://patchwork.ozlabs.org/project/uboot/list/?series=446674
+[2] https://github.com/barebox/barebox/blob/master/common/bthread.c
+
+Changes in v4:
+- Remove symbol UTHREAD_GRANULARITY and use a tight scheduling loop in
+delay() instead. Tests on an i.MX93 board have shown that setting
+UTHREAD_GRANULARITY as low as 10 microseconds (or higher) can have a
+negative impact on the console input (some key presses do not register)
+while 0 makes the console fully responsive.  The test consist in running
+"spawn sleep 10" and typing a command. I suspect other platforms may
+behave similarly, therefore do not bother with the added complexity of
+a configurable delay.
+
+Changes in v4:
+- Apply review tags
+
+Changes in v3:
+- Rebase on top of Heinrich's series "common: cleanup usage of structure
+jmp_buf_data":
+https://patchwork.ozlabs.org/project/uboot/list/?series=446674
+https://lists.denx.de/pipermail/u-boot/2025-March/582221.html
+- HAVE_INITJMP now depends on HAVE_SETJMP. Provide proper Sphinx-like
+documentaion for initjmp().
+- test/lib/initjmp.c: change SPDX license tag from GPL2.0+ to
+GPL-2.0-or-later
+- Add doc/api/setjmp.rst. The initjmp() test is used as an example in the
+documentation.
+- uthread_create() now accepts an optional user-allocated struct uthread
+- Remove the list_empty() test from uthread_schedule() (not needed)
+- Add Sphinx doc to all functions in uthread.h (moved from uthread.c).
+- Add doc/api/uthread.rst. The uthread test is used as an example in the
+documentation.
+- Document struct uthread and its components
+- Provide numbers to justify the scheduling loop in udelay() in commit
+"lib: time: hook uthread_schedule() into udelay()".
+- Do not insert uthread_schedule() in common/console.c:fgetc() since it
+is already in schedule()
+- The wait command can be interrupted with Ctrl-C
+- Switch spawn and wait tests from DM_TEST() to CMD_TEST()
+- Add MAINTAINERS entry
+- Apply review tags
+
+Changes in v2:
+- Rewrite the cover letter, do not mention the older coroutines series
+- Rebased onto next
+- UTHREAD_STACK_SIZE is set to 32768 (32 KiB) instead of 32178
+- Remove uthread_free_all() and let threads be freed as they terminate
+by uthread_schedule()
+- Add function descriptions
+- Add documentation (doc/develop/uthread.rst)
+- Explain initjmp() in the description of "arch: introduce symbol
+HAVE_INITJMP".
+- Add thread groups (uthread_grp_new_id() and uthread_grp_done())
+- Add the spawn and wait commands
