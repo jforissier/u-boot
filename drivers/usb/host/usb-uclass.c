@@ -9,6 +9,7 @@
 #define LOG_CATEGORY UCLASS_USB
 
 #include <bootdev.h>
+#include <coroutines.h>
 #include <dm.h>
 #include <errno.h>
 #include <log.h>
@@ -17,6 +18,7 @@
 #include <dm/device-internal.h>
 #include <dm/lists.h>
 #include <dm/uclass-internal.h>
+#include <time.h>
 
 static bool asynch_allowed;
 
@@ -221,7 +223,7 @@ int usb_stop(void)
 	return err;
 }
 
-static void usb_scan_bus(struct udevice *bus, bool recurse)
+static void _usb_scan_bus(struct udevice *bus)
 {
 	struct usb_bus_priv *priv;
 	struct udevice *dev;
@@ -229,17 +231,9 @@ static void usb_scan_bus(struct udevice *bus, bool recurse)
 
 	priv = dev_get_uclass_priv(bus);
 
-	assert(recurse);	/* TODO: Support non-recusive */
-
-	printf("scanning bus %s for devices... ", bus->name);
-	debug("\n");
 	ret = usb_scan_device(bus, 0, USB_SPEED_FULL, &dev);
 	if (ret)
-		printf("failed, error %d\n", ret);
-	else if (priv->next_addr == 0)
-		printf("No USB Device found\n");
-	else
-		printf("%d USB Device(s) found\n", priv->next_addr);
+		printf("Scanning bus %s failed, error %d\n", bus->name, ret);
 }
 
 static void remove_inactive_children(struct uclass *uc, struct udevice *bus)
@@ -287,9 +281,190 @@ static int usb_probe_companion(struct udevice *bus)
 	return 0;
 }
 
+static int controllers_initialized;
+
+static void _usb_init_bus(struct udevice *bus)
+{
+	int ret;
+
+	/* init low_level USB */
+	printf("Bus %s: ", bus->name);
+
+	/*
+	 * For Sandbox, we need scan the device tree each time when we
+	 * start the USB stack, in order to re-create the emulated USB
+	 * devices and bind drivers for them before we actually do the
+	 * driver probe.
+	 *
+	 * For USB onboard HUB, we need to do some non-trivial init
+	 * like enabling a power regulator, before enumeration.
+	 */
+	if (IS_ENABLED(CONFIG_SANDBOX) ||
+	    IS_ENABLED(CONFIG_USB_ONBOARD_HUB)) {
+		ret = dm_scan_fdt_dev(bus);
+		if (ret) {
+			printf("USB device scan from fdt failed (%d)", ret);
+		}
+	}
+
+	ret = device_probe(bus);
+	if (ret == -ENODEV) {	/* No such device. */
+		puts("Port not available.\n");
+		controllers_initialized++;
+	}
+
+	if (ret) {		/* Other error. */
+		printf("probe failed, error %d\n", ret);
+	}
+
+	usb_probe_companion(bus);
+
+	controllers_initialized++;
+	usb_started = true;
+}
+
+#if CONFIG_IS_ENABLED(COROUTINES)
+extern int udelay_yield;
+
+static void usb_init_bus_co(void)
+{
+	_usb_init_bus((struct udevice *)co_get_arg());
+	co_exit();
+}
+
+static void usb_scan_bus_co(void)
+{
+	_usb_scan_bus((struct udevice *)co_get_arg());
+	co_exit();
+}
+
+static struct co_stack *stk;
+static struct co *main_co;
+static struct co **co;
+/* Initial size of the co array, may be realloc'ed if needed */
+static int co_sz = 8;
+static int nco;
+
+static void _add_usb_bus_co(struct udevice *bus, void (*fn)(void))
+{
+	if (!co) {
+		co = malloc(co_sz * sizeof(*co));
+		if (!co)
+			return;
+	}
+	if (nco == co_sz) {
+		struct co **nco;
+
+		co_sz *= 2;
+		nco = realloc(co, co_sz * sizeof(*co));
+		if (!nco)
+			return;
+		co = nco;
+	}
+	if (!main_co) {
+		main_co = co_create(NULL, NULL, 0, NULL, NULL);
+		if (!main_co)
+			return;
+	}
+	if (!stk) {
+		stk = co_stack_new(32768);
+		if (!stk)
+			return;
+	}
+	co[nco] = co_create(main_co, stk, 0, fn, bus);
+	if (!co[nco])
+		return;
+	nco++;
+}
+
+static void cleanup_usb_coroutines(void)
+{
+	int i;
+
+	for (i = 0; i < nco; i++) {
+		co_destroy(co[i]);
+		co[i] = NULL;
+	}
+	nco = 0;
+	co_destroy(main_co);
+	main_co = NULL;
+	co_stack_destroy(stk);
+	stk = NULL;
+}
+
+static void schedule_usb_coroutines(void)
+{
+	bool done;
+	int i;
+
+	udelay_yield = 0xCAFEDECA;
+	do {
+		done = true;
+		for (i = 0; i < nco; i++) {
+			if (!co[i]->done) {
+				done = false;
+				co_resume(co[i]);
+			}
+		}
+	} while (!done);
+	udelay_yield = 0;
+}
+#endif
+
+static void usb_init_bus(struct udevice *bus)
+{
+#if CONFIG_IS_ENABLED(COROUTINES)
+	/* Will run _usb_init_bus() as a coroutine */
+	_add_usb_bus_co(bus, usb_init_bus_co);
+#else
+	/* Synchronous call */
+	_usb_init_bus(bus);
+#endif
+}
+
+static void usb_scan_bus(struct udevice *bus, bool recurse)
+{
+#if CONFIG_IS_ENABLED(COROUTINES)
+	/* Will run _usb_scan_bus() as a coroutine */
+	_add_usb_bus_co(bus, usb_scan_bus_co);
+#else
+	/* Synchronous call */
+	_usb_scan_bus(bus);
+#endif
+}
+
+static void usb_report_devices(struct uclass *uc)
+{
+	struct usb_bus_priv *priv;
+	struct udevice *bus;
+
+	uclass_foreach_dev(bus, uc) {
+		if (!device_active(bus))
+			continue;
+		priv = dev_get_uclass_priv(bus);
+		printf("Bus %s: ", bus->name);
+		if (priv->next_addr == 0)
+			printf("No USB device found\n");
+		else
+			printf("%d USB device(s) found\n", priv->next_addr);
+	}
+}
+
+static void do_coroutines(const char *msg, const char *type)
+{
+#if CONFIG_IS_ENABLED(COROUTINES)
+	if (!nco)
+		return;
+	printf("%s %d %sUSB bus(es)... ", msg, nco, type);
+	schedule_usb_coroutines();
+	printf("done\n");
+	cleanup_usb_coroutines();
+#endif
+}
+
 int usb_init(void)
 {
-	int controllers_initialized = 0;
+	unsigned long t0 = timer_get_us();
 	struct usb_uclass_priv *uc_priv;
 	struct usb_bus_priv *priv;
 	struct udevice *bus;
@@ -305,46 +480,10 @@ int usb_init(void)
 	uc_priv = uclass_get_priv(uc);
 
 	uclass_foreach_dev(bus, uc) {
-		/* init low_level USB */
-		printf("Bus %s: ", bus->name);
-
-		/*
-		 * For Sandbox, we need scan the device tree each time when we
-		 * start the USB stack, in order to re-create the emulated USB
-		 * devices and bind drivers for them before we actually do the
-		 * driver probe.
-		 *
-		 * For USB onboard HUB, we need to do some non-trivial init
-		 * like enabling a power regulator, before enumeration.
-		 */
-		if (IS_ENABLED(CONFIG_SANDBOX) ||
-		    IS_ENABLED(CONFIG_USB_ONBOARD_HUB)) {
-			ret = dm_scan_fdt_dev(bus);
-			if (ret) {
-				printf("USB device scan from fdt failed (%d)", ret);
-				continue;
-			}
-		}
-
-		ret = device_probe(bus);
-		if (ret == -ENODEV) {	/* No such device. */
-			puts("Port not available.\n");
-			controllers_initialized++;
-			continue;
-		}
-
-		if (ret) {		/* Other error. */
-			printf("probe failed, error %d\n", ret);
-			continue;
-		}
-
-		ret = usb_probe_companion(bus);
-		if (ret)
-			continue;
-
-		controllers_initialized++;
-		usb_started = true;
+		usb_init_bus(bus);
 	}
+
+	do_coroutines("Initializing" ,"");
 
 	/*
 	 * lowlevel init done, now scan the bus for devices i.e. search HUBs
@@ -358,6 +497,8 @@ int usb_init(void)
 		if (!priv->companion)
 			usb_scan_bus(bus, true);
 	}
+
+	do_coroutines("Scanning", "");
 
 	/*
 	 * Now that the primary controllers have been scanned and have handed
@@ -375,7 +516,9 @@ int usb_init(void)
 		}
 	}
 
-	debug("scan end\n");
+	do_coroutines("Scanning", "companion ");
+
+	usb_report_devices(uc);
 
 	/* Remove any devices that were not found on this scan */
 	remove_inactive_children(uc, bus);
@@ -388,6 +531,9 @@ int usb_init(void)
 	/* if we were not able to find at least one working bus, bail out */
 	if (controllers_initialized == 0)
 		printf("No USB controllers found\n");
+	else
+		printf("USB initialized in %ld ms\n",
+		       (timer_get_us() - t0) / 1000);
 
 	return usb_started ? 0 : -ENOENT;
 }
