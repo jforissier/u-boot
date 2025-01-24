@@ -9,6 +9,7 @@
 #define LOG_CATEGORY UCLASS_USB
 
 #include <bootdev.h>
+#include <coroutines.h>
 #include <dm.h>
 #include <errno.h>
 #include <log.h>
@@ -17,6 +18,8 @@
 #include <dm/device-internal.h>
 #include <dm/lists.h>
 #include <dm/uclass-internal.h>
+
+#include <time.h>
 
 static bool asynch_allowed;
 
@@ -221,6 +224,40 @@ int usb_stop(void)
 	return err;
 }
 
+static int nbus;
+
+#if CONFIG_IS_ENABLED(COROUTINES)
+static void usb_scan_bus(struct udevice *bus, bool recurse)
+{
+	struct usb_bus_priv *priv;
+	struct udevice *dev;
+	int ret;
+
+	priv = dev_get_uclass_priv(bus);
+
+	assert(recurse);	/* TODO: Support non-recusive */
+
+	debug("\n");
+	ret = usb_scan_device(bus, 0, USB_SPEED_FULL, &dev);
+	if (ret)
+		printf("Scanning bus %s failed, error %d\n", bus->name, ret);
+}
+
+static void usb_report_devices(struct uclass *uc)
+{
+	struct usb_bus_priv *priv;
+	struct udevice *bus;
+
+	uclass_foreach_dev(bus, uc) {
+		priv = dev_get_uclass_priv(bus);
+		printf("Bus %s: ", bus->name);
+		if (priv->next_addr == 0)
+			printf("No USB device found\n");
+		else
+			printf("%d USB device(s) found\n", priv->next_addr);
+	}
+}
+#else
 static void usb_scan_bus(struct udevice *bus, bool recurse)
 {
 	struct usb_bus_priv *priv;
@@ -240,7 +277,81 @@ static void usb_scan_bus(struct udevice *bus, bool recurse)
 		printf("No USB Device found\n");
 	else
 		printf("%d USB Device(s) found\n", priv->next_addr);
+	nbus++;
 }
+#endif
+
+#if CONFIG_IS_ENABLED(COROUTINES)
+extern int udelay_yield;
+
+static void usb_scan_bus_co(void)
+{
+	usb_scan_bus((struct udevice *)co_get_arg(), true);
+	co_exit();
+}
+
+static struct co_stack *stk;
+static struct co *main_co;
+static struct co **co;
+static int co_sz = 8;
+
+static int add_usb_scan_bus_co(struct udevice *bus)
+{
+	if (!co) {
+		co = malloc(co_sz * sizeof(*co));
+		if (!co)
+			return -ENOMEM;
+	}
+	if (nbus == co_sz) {
+		struct co **nco;
+
+		co_sz *= 2;
+		nco = realloc(co, co_sz * sizeof(*co));
+		if (!nco)
+			return -ENOMEM;
+		co = nco;
+	}
+	if (!main_co) {
+		main_co = co_create(NULL, NULL, 0, NULL, NULL);
+		if (!main_co)
+			return -ENOMEM;
+	}
+	if (!stk) {
+		stk = co_stack_new(32768);
+		if (!stk)
+			return -ENOMEM;
+	}
+	co[nbus] = co_create(main_co, stk, 0, usb_scan_bus_co, bus);
+	if (!co[nbus])
+		return -ENOMEM;
+	nbus++;
+	return 0;
+}
+
+static void usb_scan_cleanup(void)
+{
+	int i;
+
+	for (i = 0; i < nbus; i++) {
+		co_destroy(co[i]);
+		co[i] = NULL;
+	}
+	nbus = 0;
+	co_destroy(main_co);
+	main_co = NULL;
+	co_stack_destroy(stk);
+	stk = NULL;
+}
+#else
+static int add_usb_scan_bus_co(struct udevice *bus)
+{
+	return 0;
+}
+
+static void usb_scan_cleanup(void)
+{
+}
+#endif
 
 static void remove_inactive_children(struct uclass *uc, struct udevice *bus)
 {
@@ -289,6 +400,7 @@ static int usb_probe_companion(struct udevice *bus)
 
 int usb_init(void)
 {
+	unsigned long t0 = timer_get_us();
 	int controllers_initialized = 0;
 	struct usb_uclass_priv *uc_priv;
 	struct usb_bus_priv *priv;
@@ -355,9 +467,39 @@ int usb_init(void)
 			continue;
 
 		priv = dev_get_uclass_priv(bus);
-		if (!priv->companion)
-			usb_scan_bus(bus, true);
+		if (!priv->companion) {
+			if (CONFIG_IS_ENABLED(COROUTINES)) {
+				ret = add_usb_scan_bus_co(bus);
+				if (ret)
+					goto out;
+			} else {
+				usb_scan_bus(bus, true);
+			}
+		}
 	}
+
+#if CONFIG_IS_ENABLED(COROUTINES)
+	{
+		bool done;
+		int i;
+
+		printf("Scanning %d USB bus(es)... ", nbus);
+		udelay_yield = 0xCAFEDECA;
+		do {
+			done = true;
+			for (i = 0; i < nbus; i++) {
+				if (!co[i]->done) {
+					done = false;
+					co_resume(co[i]);
+				}
+			}
+		} while (!done);
+		udelay_yield = 0;
+		printf("done\n");
+
+		usb_report_devices(uc);
+	}
+#endif
 
 	/*
 	 * Now that the primary controllers have been scanned and have handed
@@ -388,7 +530,11 @@ int usb_init(void)
 	/* if we were not able to find at least one working bus, bail out */
 	if (controllers_initialized == 0)
 		printf("No USB controllers found\n");
-
+out:
+	if (nbus)
+		printf("USB: %d bus(es) scanned in %ld ms\n", nbus,
+		       (timer_get_us() - t0) / 1000);
+	usb_scan_cleanup();
 	return usb_started ? 0 : -ENOENT;
 }
 
