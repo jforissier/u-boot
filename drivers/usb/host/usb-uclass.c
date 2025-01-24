@@ -9,6 +9,7 @@
 #define LOG_CATEGORY UCLASS_USB
 
 #include <bootdev.h>
+#include <uthread.h>
 #include <dm.h>
 #include <errno.h>
 #include <log.h>
@@ -17,6 +18,7 @@
 #include <dm/device-internal.h>
 #include <dm/lists.h>
 #include <dm/uclass-internal.h>
+#include <time.h>
 
 static bool asynch_allowed;
 
@@ -221,25 +223,18 @@ int usb_stop(void)
 	return err;
 }
 
-static void usb_scan_bus(struct udevice *bus, bool recurse)
+static void _usb_scan_bus(void *arg)
 {
+	struct udevice *bus = (struct udevice *)arg;
 	struct usb_bus_priv *priv;
 	struct udevice *dev;
 	int ret;
 
 	priv = dev_get_uclass_priv(bus);
 
-	assert(recurse);	/* TODO: Support non-recusive */
-
-	printf("scanning bus %s for devices... ", bus->name);
-	debug("\n");
 	ret = usb_scan_device(bus, 0, USB_SPEED_FULL, &dev);
 	if (ret)
-		printf("failed, error %d\n", ret);
-	else if (priv->next_addr == 0)
-		printf("No USB Device found\n");
-	else
-		printf("%d USB Device(s) found\n", priv->next_addr);
+		printf("Scanning bus %s failed, error %d\n", bus->name, ret);
 }
 
 static void remove_inactive_children(struct uclass *uc, struct udevice *bus)
@@ -289,8 +284,9 @@ static int usb_probe_companion(struct udevice *bus)
 
 static int controllers_initialized;
 
-static void usb_init_bus(struct udevice *bus)
+static void _usb_init_bus(void *arg)
 {
+	struct udevice *bus = (struct udevice *)arg;
 	int ret;
 
 	/* init low_level USB */
@@ -334,8 +330,59 @@ static void usb_init_bus(struct udevice *bus)
 	usb_started = true;
 }
 
+#if CONFIG_IS_ENABLED(UTHREAD)
+extern int udelay_yield;
+#endif
+static int nthr;
+
+static void usb_init_bus(struct udevice *bus)
+{
+	if (!uthread_create(_usb_init_bus, (void *)bus, 0))
+		nthr++;
+}
+
+static void usb_scan_bus(struct udevice *bus, bool recurse)
+{
+	if (!uthread_create(_usb_scan_bus, (void *)bus, 0))
+		nthr++;
+}
+
+static void usb_report_devices(struct uclass *uc)
+{
+	struct usb_bus_priv *priv;
+	struct udevice *bus;
+
+	uclass_foreach_dev(bus, uc) {
+		if (!device_active(bus))
+			continue;
+		priv = dev_get_uclass_priv(bus);
+		printf("Bus %s: ", bus->name);
+		if (priv->next_addr == 0)
+			printf("No USB device found\n");
+		else
+			printf("%d USB device(s) found\n", priv->next_addr);
+	}
+}
+
+static void run_threads(const char *msg, const char *type)
+{
+#if CONFIG_IS_ENABLED(UTHREAD)
+	if (!nthr)
+		return;
+	printf("%s %d %sUSB bus(es)... ", msg, nthr, type);
+	udelay_yield = 0xCAFEDECA;
+	while (uthread_schedule())
+		/* Nothing */;
+	udelay_yield = 0;
+	printf("done\n");
+	uthread_free_all();
+	nthr = 0;
+#endif
+}
+
 int usb_init(void)
 {
+	unsigned long t0 = timer_get_us();
 	struct usb_uclass_priv *uc_priv;
 	struct usb_bus_priv *priv;
 	struct udevice *bus;
@@ -354,6 +401,9 @@ int usb_init(void)
 		usb_init_bus(bus);
 	}
 
+	if (CONFIG_IS_ENABLED(UTHREAD))
+		run_threads("Initializing" ,"");
+
 	/*
 	 * lowlevel init done, now scan the bus for devices i.e. search HUBs
 	 * and configure them, first scan primary controllers.
@@ -366,6 +416,9 @@ int usb_init(void)
 		if (!priv->companion)
 			usb_scan_bus(bus, true);
 	}
+
+	if (CONFIG_IS_ENABLED(UTHREAD))
+		run_threads("Scanning", "");
 
 	/*
 	 * Now that the primary controllers have been scanned and have handed
@@ -383,7 +436,10 @@ int usb_init(void)
 		}
 	}
 
-	debug("scan end\n");
+	if (CONFIG_IS_ENABLED(UTHREAD))
+		run_threads("Scanning", "companion ");
+
+	usb_report_devices(uc);
 
 	/* Remove any devices that were not found on this scan */
 	remove_inactive_children(uc, bus);
@@ -396,6 +452,9 @@ int usb_init(void)
 	/* if we were not able to find at least one working bus, bail out */
 	if (controllers_initialized == 0)
 		printf("No USB controllers found\n");
+	else
+		printf("USB initialized in %ld ms\n",
+		       (timer_get_us() - t0) / 1000);
 
 	return usb_started ? 0 : -ENOENT;
 }
