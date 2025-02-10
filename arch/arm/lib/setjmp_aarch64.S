@@ -39,3 +39,15 @@ ENTRY(longjmp)
 	ret
 ENDPROC(longjmp)
 .popsection
+
+.pushsection .text.initjmp, "ax"
+ENTRY(initjmp)
+	/*
+	 * Initialize jmpbuf's LR and SP with a function trampoline passed in
+	 * x1 and a stack top in x2, respectively
+	 */
+	stp x1, x2, [x0,#88]
+	mov  x0, #0
+	ret
+ENDPROC(initjmp)
+.popsection

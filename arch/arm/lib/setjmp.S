@@ -34,3 +34,18 @@ ENTRY(longjmp)
 	ret  lr
 ENDPROC(longjmp)
 .popsection
+
+.pushsection .text.initjmp, "ax"
+ENTRY(initjmp)
+	mov  ip, sp
+	stm  a1, {v1-v8, ip, lr}
+	/*
+	 * Store only the function pointer and the stack top passed in
+	 * arguments where setjmp() would save lr and sp, respectively.
+	 */
+	str  a3, [a1, #32]  /* sp */
+	str  a2, [a1, #36]  /* lr */
+	mov  a1, #0
+	ret  lr
+ENDPROC(initjmp)
+.popsection
