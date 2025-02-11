@@ -31,5 +31,10 @@ typedef struct jmp_buf_data jmp_buf[1];
  */
 int setjmp(jmp_buf jmp);
 __noreturn void longjmp(jmp_buf jmp, int ret);
+/*
+ * initjmp() is non-standard, still it has to play well with the system versions
+ * of setjmp()/longjmp().
+ */
+int initjmp(jmp_buf jmp, void __noreturn (*func)(void), void *stack_top);
 
 #endif /* _SETJMP_H_ */
