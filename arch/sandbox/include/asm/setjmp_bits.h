@@ -22,4 +22,4 @@ struct jmp_buf_data {
 	ulong data[128];
 };
 
-#endif /* _SETJMP_H_ */
+#endif /* _SETJMP_BITS_H_ */
