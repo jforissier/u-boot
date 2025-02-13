@@ -76,10 +76,11 @@ err:
 
 void uthread_free_all(void)
 {
+	struct uthread *main = &main_thread;
 	struct uthread *next;
 	struct uthread *tmp;
 
-	list_for_each_entry_safe(next, tmp, &current->list, list) {
+	list_for_each_entry_safe(next, tmp, &main->list, list) {
 		list_del(&next->list);
 		uthread_free(next);
 	}
