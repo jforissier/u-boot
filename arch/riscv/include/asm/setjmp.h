@@ -21,5 +21,6 @@ typedef struct jmp_buf_data jmp_buf[1];
 
 int setjmp(jmp_buf jmp);
 void longjmp(jmp_buf jmp, int ret);
+int initjmp(jmp_buf jmp, void __noreturn (*func)(void), void *stack_top);
 
 #endif /* _SETJMP_H_ */
