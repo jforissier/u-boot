@@ -53,6 +53,7 @@ Implementation
    spl
    falcon
    uefi/index
+   uthread
    vbe
    version
 
