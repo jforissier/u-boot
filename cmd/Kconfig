@@ -2177,6 +2177,21 @@ config WGET_HTTPS
 	help
 	  Enable TLS over http for wget.
 
+config WGET_CACERT
+	bool "wget cacert"
+	depends on CMD_WGET
+	depends on WGET_HTTPS
+	help
+	  Adds the "cacert" sub-command to wget to provide root certificates
+	  to the HTTPS engine.
+
+config MBEDTLS_LIB_X509_PEM
+	depends on WGET_CACERT
+	bool "Support for PEM-encoded X509 certificates"
+	help
+	  This option enables MbedTLS to parse PEM-encoded X509 certificates.
+	  When disabled, only DER format is accepted.
+
 endif  # if CMD_NET
 
 config CMD_PXE

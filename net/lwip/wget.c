@@ -285,6 +285,53 @@ static err_t httpc_headers_done_cb(httpc_state_t *connection, void *arg, struct 
 	return ERR_OK;
 }
 
+#if defined CONFIG_WGET_HTTPS
+static char *cacert;
+size_t cacert_size;
+#endif
+
+#if defined CONFIG_WGET_CACERT
+static int set_cacert(char * const saddr, char * const ssz)
+{
+	mbedtls_x509_crt crt;
+	ulong addr, sz;
+	int ret;
+
+	if (cacert)
+		free(cacert);
+
+	addr = hextoul(saddr, NULL);
+	sz = hextoul(ssz, NULL);
+	sz++; /* For the trailing '\0' in case of a text (PEM) file */
+
+	if (!addr) {
+		cacert = NULL;
+		cacert_size = 0;
+		return CMD_RET_SUCCESS;
+	}
+
+	cacert = malloc(sz);
+	if (!cacert)
+		return CMD_RET_FAILURE;
+	cacert_size = sz;
+
+	memcpy(cacert, (void *)addr, sz - 1);
+	cacert[sz] = '\0';
+
+	mbedtls_x509_crt_init(&crt);
+	ret = mbedtls_x509_crt_parse(&crt, cacert, cacert_size);
+	if (ret) {
+		printf("Could not parse certificates (%d)\n", ret);
+		free(cacert);
+		cacert = NULL;
+		cacert_size = 0;
+		return CMD_RET_FAILURE;
+	}
+
+	return CMD_RET_SUCCESS;
+}
+#endif
+
 static int wget_loop(struct udevice *udev, ulong dst_addr, char *uri)
 {
 #if defined CONFIG_WGET_HTTPS
@@ -316,7 +363,8 @@ static int wget_loop(struct udevice *udev, ulong dst_addr, char *uri)
 	if (is_https) {
 		tls_allocator.alloc = &altcp_tls_alloc;
 		tls_allocator.arg =
-			altcp_tls_create_config_client(NULL, 0, ctx.server_name);
+			altcp_tls_create_config_client(cacert, cacert_size,
+						       ctx.server_name);
 
 		if (!tls_allocator.arg) {
 			log_err("error: Cannot create a TLS connection\n");
@@ -368,6 +416,11 @@ int do_wget(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 	char *url;
 	ulong dst_addr;
 	char nurl[1024];
+
+#if defined CONFIG_WGET_CACERT
+	if (argc == 4 && !strncmp(argv[1], "cacert", strlen("cacert")))
+		return set_cacert(argv[2], argv[3]);
+#endif
 
 	if (argc < 2 || argc > 3)
 		return CMD_RET_USAGE;

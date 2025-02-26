@@ -138,6 +138,11 @@
 #define MBEDTLS_ECP_DP_BP384R1_ENABLED
 #define MBEDTLS_ECP_DP_BP512R1_ENABLED
 
+/* CA certificates parsing */
+#if CONFIG_IS_ENABLED(MBEDTLS_LIB_X509_PEM)
+#define MBEDTLS_PEM_PARSE_C
+#define MBEDTLS_BASE64_C
+#endif
 #endif /* #if defined CONFIG_MBEDTLS_LIB_TLS */
 
 #endif /* #if defined CONFIG_MBEDTLS_LIB */

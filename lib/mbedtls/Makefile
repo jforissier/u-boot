@@ -57,6 +57,9 @@ mbedtls_lib_x509-$(CONFIG_$(SPL_)X509_CERTIFICATE_PARSER_MBEDTLS) += \
 	$(MBEDTLS_LIB_DIR)/x509_crt.o
 mbedtls_lib_x509-$(CONFIG_$(SPL_)PKCS7_MESSAGE_PARSER_MBEDTLS) += \
 	$(MBEDTLS_LIB_DIR)/pkcs7.o
+mbedtls_lib_x509-$(CONFIG_MBEDTLS_LIB_X509_PEM) += \
+	$(MBEDTLS_LIB_DIR)/base64.o \
+	$(MBEDTLS_LIB_DIR)/pem.o
 
 #mbedTLS TLS support
 obj-$(CONFIG_MBEDTLS_LIB_TLS) += mbedtls_lib_tls.o
