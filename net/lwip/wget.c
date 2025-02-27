@@ -288,21 +288,23 @@ static err_t httpc_headers_done_cb(httpc_state_t *connection, void *arg, struct 
 #if defined CONFIG_WGET_HTTPS
 static char *cacert;
 size_t cacert_size;
+
+#if defined CONFIG_WGET_BUILTIN_CACERT
+extern char builtin_cacert[];
+extern const size_t builtin_cacert_size;
+static bool cacert_initialized;
+#endif
 #endif
 
-#if defined CONFIG_WGET_CACERT
-static int set_cacert(char * const saddr, char * const ssz)
+#if defined CONFIG_WGET_CACERT || defined CONFIG_WGET_BUILTIN_CACERT
+static int _set_cacert(void *addr, size_t sz)
 {
 	mbedtls_x509_crt crt;
-	ulong addr, sz;
+	void *p;
 	int ret;
 
 	if (cacert)
 		free(cacert);
-
-	addr = hextoul(saddr, NULL);
-	sz = hextoul(ssz, NULL);
-	sz++; /* For the trailing '\0' in case of a text (PEM) file */
 
 	if (!addr) {
 		cacert = NULL;
@@ -310,9 +312,10 @@ static int set_cacert(char * const saddr, char * const ssz)
 		return CMD_RET_SUCCESS;
 	}
 
-	cacert = malloc(sz);
-	if (!cacert)
+	p = malloc(sz);
+	if (!p)
 		return CMD_RET_FAILURE;
+	cacert = p;
 	cacert_size = sz;
 
 	memcpy(cacert, (void *)addr, sz - 1);
@@ -328,9 +331,32 @@ static int set_cacert(char * const saddr, char * const ssz)
 		return CMD_RET_FAILURE;
 	}
 
+#if defined CONFIG_WGET_BUILTIN_CACERT
+	cacert_initialized = true;
+#endif
 	return CMD_RET_SUCCESS;
 }
+
+#if defined CONFIG_WGET_BUILTIN_CACERT
+static int set_cacert_builtin(void)
+{
+	return _set_cacert(builtin_cacert, builtin_cacert_size);
+}
 #endif
+
+#if defined CONFIG_WGET_CACERT
+static int set_cacert(char * const saddr, char * const ssz)
+{
+	ulong addr, sz;
+
+	addr = hextoul(saddr, NULL);
+	sz = hextoul(ssz, NULL);
+	sz++; /* For the trailing '\0' in case of a text (PEM) file */
+
+	return _set_cacert((void *)addr, sz);
+}
+#endif
+#endif  /* CONFIG_WGET_CACERT || CONFIG_WGET_BUILTIN_CACERT */
 
 static int wget_loop(struct udevice *udev, ulong dst_addr, char *uri)
 {
@@ -361,6 +387,10 @@ static int wget_loop(struct udevice *udev, ulong dst_addr, char *uri)
 	memset(&conn, 0, sizeof(conn));
 #if defined CONFIG_WGET_HTTPS
 	if (is_https) {
+#if defined CONFIG_WGET_BUILTIN_CACERT
+		if (!cacert_initialized)
+			set_cacert_builtin();
+#endif
 		tls_allocator.alloc = &altcp_tls_alloc;
 		tls_allocator.arg =
 			altcp_tls_create_config_client(cacert, cacert_size,
@@ -420,6 +450,11 @@ int do_wget(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 #if defined CONFIG_WGET_CACERT
 	if (argc == 4 && !strncmp(argv[1], "cacert", strlen("cacert")))
 		return set_cacert(argv[2], argv[3]);
+#if defined CONFIG_WGET_BUILTIN_CACERT
+	if (argc == 3 && !strncmp(argv[1], "cacert", strlen("cacert")) &&
+	    !strncmp(argv[2], "builtin", strlen("builtin")))
+		return set_cacert_builtin();
+#endif
 #endif
 
 	if (argc < 2 || argc > 3)

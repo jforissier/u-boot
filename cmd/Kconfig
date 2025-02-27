@@ -2186,11 +2186,25 @@ config WGET_CACERT
 	  to the HTTPS engine.
 
 config MBEDTLS_LIB_X509_PEM
-	depends on WGET_CACERT
+	depends on WGET_HTTPS
 	bool "Support for PEM-encoded X509 certificates"
 	help
 	  This option enables MbedTLS to parse PEM-encoded X509 certificates.
 	  When disabled, only DER format is accepted.
+
+config WGET_BUILTIN_CACERT
+	bool "Built-in CA certificates"
+	depends on WGET_HTTPS
+
+config WGET_BUILTIN_CACERT_PATH
+	string "Path to root certificates"
+	depends on WGET_BUILTIN_CACERT
+	default "cacert.crt"
+	help
+	  Set this to the path to a DER- or PEM-encoded X509 file containing
+	  Certification Authority certificates, a.k.a. root certificates, for
+	  the purpose of authenticating HTTPS connections. Do not forget to
+	  enable MBEDTLS_LIB_X509_PEM if the file is PEM.
 
 endif  # if CMD_NET
 

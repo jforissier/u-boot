@@ -39,6 +39,10 @@ U_BOOT_CMD(wget, 4, 1, do_wget,
 #if defined(CONFIG_WGET_CACERT)
 	   "\nwget cacert <address> <length>\n"
 	   "    - provide CA certificates (0 0 to disable verification)"
+#if defined(CONFIG_WGET_BUILTIN_CACERT)
+	   "\nwget cacert builtin\n"
+	   "    - use the builtin CA certificates"
+#endif
 #endif
 );
 #endif
