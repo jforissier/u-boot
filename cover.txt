@@ -1,0 +1,77 @@
+v1 sent 27-Feb-2025
+v2 sent 05-Mar-2025
+
+net: lwip: root certificates
+
+This series adds support for HTTP server authentication using root (CA)
+certificates.
+
+As a first step, the wget command is extended to support a sub-command:
+cacert <addr> <size>. The memory region shall contain the CA
+certificates. With this, it is possible to load the certificates from
+storage or get them from the network for example, which is convenient
+for testing at least. The Kconfig symbol for this feature is
+WGET_CACERT=y.
+
+Then new Kconfig symbols are added to support providing the certificates
+at build time, as a DER or PEM encoded X509 collection:
+WGET_BUILTIN_CACERT=y and WGET_BUILTIN_CACERT_PATH=<some path>.
+Note that PEM support requires MBEDTLS_LIB_X509_PEM=y (for the cacert
+command as well as for the builtin way).
+
+Here is a complete example (showing only the relevant output from the
+various commands):
+
+ make qemu_arm64_lwip_defconfig
+ wget https://curl.se/ca/cacert.pem
+ echo CONFIG_WGET_BUILTIN_CACERT=y >>.config
+ echo CONFIG_WGET_BUILTIN_CACERT_PATH=cacert.pem >>.config
+ make olddefconfig
+ make -j$(nproc) CROSS_COMPILE="ccache aarch64-linux-gnu-"
+ qemu-system-aarch64 -M virt -nographic -cpu max \
+        -object rng-random,id=rng0,filename=/dev/urandom \
+        -device virtio-rng-pci,rng=rng0 -bios u-boot.bin
+ => dhcp
+ # HTTPS transfer using the builtin CA certificates
+ => wget https://www.google.com/
+ 18724 bytes transferred in 15 ms (1.2 MiB/s)
+ # Disable certificate validation
+ => wget cacert 0 0
+ # Unsafe HTTPS transfer
+ => wget https://www.google.com/
+ WARNING: no CA certificates, HTTPS connections not authenticated
+ 16570 bytes transferred in 15 ms (1.1 MiB/s)
+ # Dowload and apply CA certificates from the net
+ => wget https://curl.se/ca/cacert.pem
+ WARNING: no CA certificates, HTTPS connections not authenticated
+ ##
+ 233263 bytes transferred in 61 ms (3.6 MiB/s)
+ => wget cacert $fileaddr $filesize
+ # Now HTTPS is authenticated against the new CA
+ => wget https://www.google.com/
+ 18743 bytes transferred in 14 ms (1.3 MiB/s)
+ # Drop the certificates again...
+ => wget cacert 0 0
+ # Check that transfer is not secure
+ => wget https://www.google.com/
+ WARNING: no CA certificates, HTTPS connections not authenticated
+ # Restore the builtin CA
+ => wget cacert builtin
+ # No more WARNING
+ => wget https://www.google.com/
+ 18738 bytes transferred in 15 ms (1.2 MiB/s)
+
+Changes in v2:
+- Drop PEM support. It is unnecessary since conversion from PEM to DER
+is easy, and PEM takes more space in memory. Another reason is the ugly
+hack requiring to allocate one more byte for the null terminator in
+case the file is PEM (therefore, text).
+- Add 'wget cacert none|optional|required'
+- Replace '#if defined CONFIG_X' with '#if CONFIG_IS_ENABLED(X)' in
+net/lwip/wget.c Do NOT replace '#if defined(CONFIG_X)' in net/net-lwip.c
+for consistency with how other symbols are treated in that file.
+- Make builtin_cacert const
+- Make cacert_size static
+- BUILTIN_CACERT selects BUILD_BIN2C
+- Add documentation in doc/cmd/wget.rst
+- Apply review tags
