@@ -12,7 +12,7 @@
 #include <cpu_func.h>
 #include <log.h>
 #include <asm/cache.h>
-#include <asm/setjmp.h>
+#include <asm-generic/setjmp.h>
 
 /**
  * entry_non_secure() - entry point when switching to non-secure mode

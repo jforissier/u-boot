@@ -8,7 +8,7 @@
 #include <test/lib.h>
 #include <test/test.h>
 #include <test/ut.h>
-#include <asm/setjmp.h>
+#include <asm-generic/setjmp.h>
 
 struct test_jmp_buf {
 	jmp_buf env;
