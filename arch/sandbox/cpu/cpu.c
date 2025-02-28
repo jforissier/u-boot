@@ -13,7 +13,6 @@
 #include <asm/global_data.h>
 #include <asm/io.h>
 #include <asm/malloc.h>
-#include <asm/setjmp.h>
 #include <asm/state.h>
 #include <dm/ofnode.h>
 #include <linux/delay.h>
