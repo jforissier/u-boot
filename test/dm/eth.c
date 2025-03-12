@@ -169,27 +169,28 @@ static int dm_test_ip6_make_lladdr(struct unit_test_state *uts)
 DM_TEST(dm_test_ip6_make_lladdr, UTF_SCAN_FDT);
 #endif
 
-#if CONFIG_IS_ENABLED(NET)
 static int dm_test_eth(struct unit_test_state *uts)
 {
-	net_ping_ip = string_to_ip("1.1.2.2");
+	char *argv[] = { "ping", "1.1.2.2" };
+	int argc = 2;
 
 	env_set("ethact", "eth@10002000");
-	ut_assertok(net_loop(PING));
+	ut_assertok(do_ping(NULL, 0, argc, argv));
 	ut_asserteq_str("eth@10002000", env_get("ethact"));
 
 	env_set("ethact", "eth@10003000");
-	ut_assertok(net_loop(PING));
+	ut_assertok(do_ping(NULL, 0, argc, argv));
 	ut_asserteq_str("eth@10003000", env_get("ethact"));
 
 	env_set("ethact", "eth@10004000");
-	ut_assertok(net_loop(PING));
+	ut_assertok(do_ping(NULL, 0, argc, argv));
 	ut_asserteq_str("eth@10004000", env_get("ethact"));
 
 	return 0;
 }
 DM_TEST(dm_test_eth, UTF_SCAN_FDT);
 
+#if CONFIG_IS_ENABLED(NET)
 static int dm_test_eth_alias(struct unit_test_state *uts)
 {
 	net_ping_ip = string_to_ip("1.1.2.2");
