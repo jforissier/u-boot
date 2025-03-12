@@ -169,6 +169,7 @@ static int dm_test_ip6_make_lladdr(struct unit_test_state *uts)
 DM_TEST(dm_test_ip6_make_lladdr, UTF_SCAN_FDT);
 #endif
 
+#if CONFIG_IS_ENABLED(NET)
 static int dm_test_eth(struct unit_test_state *uts)
 {
 	net_ping_ip = string_to_ip("1.1.2.2");
@@ -613,6 +614,7 @@ static int dm_test_eth_async_ping_reply(struct unit_test_state *uts)
 	return 0;
 }
 DM_TEST(dm_test_eth_async_ping_reply, UTF_SCAN_FDT);
+#endif
 
 #if IS_ENABLED(CONFIG_IPV6_ROUTER_DISCOVERY)
 
