@@ -11,6 +11,7 @@
 #define LOG_CATEGORY	LOGC_BOOT
 
 #include <bootstage.h>
+#include <env.h>
 #include <hang.h>
 #include <log.h>
 #include <malloc.h>
@@ -19,6 +20,8 @@
 #include <asm/global_data.h>
 #include <linux/compiler.h>
 #include <linux/libfdt.h>
+#include <timestamp.h>
+#include <version.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -324,7 +327,7 @@ int bootstage_fdt_add_report(void)
 }
 #endif
 
-void bootstage_report(void)
+static void bootstage_report_text(void)
 {
 	struct bootstage_data *data = gd->bootstage;
 	struct bootstage_record *rec = data->record;
@@ -351,6 +354,141 @@ void bootstage_report(void)
 		if (rec->start_us)
 			prev = print_time_record(rec, -1);
 	}
+}
+
+/**
+ * Same as get_record_name() but with a %<n> suffix if needed to make the name a
+ * a unique JSON key. More specifically, where get_record_name() would return
+ * "foo" and "foo" for two distinct records, this function would return "foo"
+ * and "foo%1".
+ *
+ * @param buf	Buffer to put name if needed
+ * @param len	Length of buffer
+ * @param rec	Boot stage record to get the name from
+ * Return: pointer to name, either from the record or pointing to buf.
+ */
+static const char *get_unique_record_name(char *buf, int len,
+					const struct bootstage_record *rec)
+{
+	struct bootstage_data *data = gd->bootstage;
+	const char *name;
+	char tmpbuf1[20];
+	char tmpbuf2[20];
+	int idx = 0;
+	int i;
+
+	name = get_record_name(tmpbuf1, sizeof(tmpbuf1), rec);
+
+	/* Count records with an identical name before @rec in the array */
+	for (i = 0; i < data->rec_count; i++) {
+		struct bootstage_record *irec = data->record + i;
+		const char *iname = get_record_name(tmpbuf2, sizeof(tmpbuf2),
+						    irec);
+
+		if (irec == rec)
+			break;
+		if (!strcmp(name, iname))
+			idx++;
+	}
+
+	if (idx)
+		snprintf(buf, len, "%s%%%d", name, idx);
+	else
+		strncpy(buf, name, len);
+
+	return buf;
+}
+
+/*
+ * print_time_record_json() - print a time entry in JSON format for a bootstage
+ * record or a couple of bootstage records.
+ *
+ * The function prints "key_name": value
+ *
+ * - If @rec->start_us is non-zero, it means @rec holds accumulated time. In
+ *   this case, key_name is the unique record name and value is @rec->time_us.
+ * - Otherwise, @rec represents a boot stage with an associated timestamp. The
+ *   key name is obtained by concatenating the previous record name and the
+ *   current record name, separated by a tilda. The value is the elapsed time
+ *   between the two stages, that is: @rec->time_us - @prev->time_us.
+ */
+static struct bootstage_record *print_time_record_json(
+					struct bootstage_record *rec,
+					struct bootstage_record *prev)
+{
+	char buf1[24];
+	char buf2[24];
+
+	if (rec->start_us) {
+		/* An "Accumulated time" entry in the text report */
+		printf("\"%s\": %lu",
+		       get_unique_record_name(buf1, sizeof(buf1), rec),
+		       rec->time_us);
+		return prev;
+	}
+
+	/* Elapsed time between two consecutive stages */
+	printf("\"%s~%s\": %lu",
+	       get_unique_record_name(buf1, sizeof(buf1), prev),
+	       get_unique_record_name(buf2, sizeof(buf2), rec),
+	       rec->time_us - prev->time_us);
+
+	return rec;
+}
+
+static void print_env_json(const char *env, bool cont)
+{
+	char *val = env_get(env);
+	printf("\"%s\": \"%s\"", env, val ? val : "");
+	if (cont)
+		puts(", ");
+}
+
+static void bootstage_report_json(void)
+{
+	struct bootstage_data *data = gd->bootstage;
+	struct bootstage_record *prev = data->record;
+	struct bootstage_record *rec = data->record;
+	struct bootstage_record *boot_end = NULL;
+	bool first = true;
+	int i;
+
+	puts("=== Begin JSON bootstage report ===\n");
+	puts("{ \"u_boot_version\": \"" PLAIN_VERSION "\", "
+	     "\"u_boot_date\": \"" U_BOOT_DATE "\", "
+	     "\"u_boot_time\": \"" U_BOOT_TIME "\", "
+	     "\"u_boot_tz\": \"" U_BOOT_TZ "\", "
+	     "\"env\": { ");
+	print_env_json("arch", 1);
+	print_env_json("board", 1);
+	print_env_json("board_name", 1);
+	print_env_json("cpu", 1);
+	print_env_json("vendor", 0);
+	puts(" }, "
+	     "\"bootstage_data\": { ");
+
+	for (i = 1, rec++; i < data->rec_count; i++, rec++) {
+		if (rec->id) {
+			if (!rec->start_us)
+				boot_end = rec;
+			if (!first)
+				puts(", ");
+			prev = print_time_record_json(rec, prev);
+			first = false;
+		}
+	}
+	if (boot_end)
+		printf(", \"total\": %ld", boot_end->time_us);
+
+	puts(" } }\n");
+	puts("=== End JSON bootstage report ===\n");
+}
+
+void bootstage_report(void)
+{
+	bootstage_report_text();
+	if (CONFIG_IS_ENABLED(BOOTSTAGE_REPORT_JSON))
+		bootstage_report_json();
 }
 
 /**
