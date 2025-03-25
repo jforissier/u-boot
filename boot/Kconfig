@@ -1167,6 +1167,32 @@ config BOOTSTAGE_REPORT
 		 29,916,167 26,005,792  bootm_start
 		 30,361,327    445,160  start_kernel
 
+config BOOTSTAGE_REPORT_JSON
+	bool "Display boot timing report in JSON format"
+	depends on BOOTSTAGE_REPORT
+	help
+	  Enable output of the boot time report in JSON format in addition to
+	  the human-readable text format. The report looks something like this:
+	  (line breaks added for legibility):
+		=== Begin JSON bootstage report (elapsed time in us) ===
+		{ "reset~board_init_f": 2708, "dm_f": 3670,
+		  "board_init_f~board_init_r": 18005, "dm_r": 8706,
+		  "board_init_r~eth_common_init": 72750,
+		  "eth_common_init~eth_initialize": 1811,
+		  "eth_initialize~main_loop": 1385, "main_loop~usb_start": 1129,
+		  "usb_start~netboot_run_": 2008933,
+		  "netboot_run_~eth_start": 50, "eth_start~bootp_start": 670,
+		  "bootp_start~bootp_stop": 1540,
+		  "bootp_stop~netboot_run_%1": 1222,
+		  "netboot_run_%1~cli_loop": 383 }
+		=== End JSON bootstage report ===
+	  When a key name contains a tilda (~), the value represents the elapsed
+	  time between two consecutive marks in the boot stage records. For
+	  example, 1811 microseconds have elapsed between the eth_common_init
+	  eth_initalize marks. When there is no tilda, the value is an accumulated
+	  time (special case for dm_f and dm_r).
+
+
 config BOOTSTAGE_RECORD_COUNT
 	int "Number of boot stage records to store"
 	depends on BOOTSTAGE
