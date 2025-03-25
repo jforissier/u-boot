@@ -32,6 +32,15 @@ def test_bootstage_report(ubman):
 
 @pytest.mark.buildconfigspec('bootstage')
 @pytest.mark.buildconfigspec('cmd_bootstage')
+@pytest.mark.buildconfigspec('bootstage_report_json')
+def test_bootstage_report_json(ubman):
+    output = ubman.run_command('bootstage report')
+    assert '=== Begin JSON bootstage report' in output
+    assert '"dm_r"' in output
+    assert '"reset~board_init_f"' in output
+
+@pytest.mark.buildconfigspec('bootstage')
+@pytest.mark.buildconfigspec('cmd_bootstage')
 @pytest.mark.buildconfigspec('bootstage_stash')
 def test_bootstage_stash_and_unstash(ubman):
     f = ubman.config.env.get('env__bootstage_cmd_file', None)
