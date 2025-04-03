@@ -8,6 +8,7 @@
 #define LOG_CATEGORY LOGC_EFI
 
 #include <bootm.h>
+#include <bootstage.h>
 #include <div64.h>
 #include <dm/device.h>
 #include <dm/root.h>
@@ -2178,6 +2179,12 @@ static efi_status_t EFIAPI efi_exit_boot_services(efi_handle_t image_handle,
 	efi_status_t ret = EFI_SUCCESS;
 
 	EFI_ENTRY("%p, %zx", image_handle, map_key);
+
+#if !defined(USE_HOSTCC)
+#if CONFIG_IS_ENABLED(BOOTSTAGE)
+	bootstage_report();
+#endif
+#endif
 
 	/* Check that the caller has read the current memory map */
 	if (map_key != efi_memory_map_key) {
