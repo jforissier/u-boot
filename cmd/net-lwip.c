@@ -21,6 +21,11 @@ U_BOOT_CMD(tftpboot, 3, 0, do_tftpb,
 	   "[loadAddress] [[hostIPaddr:]bootfilename]");
 #endif
 
+#if defined(CONFIG_CMD_SNTP)
+U_BOOT_CMD(sntp, 2, 1, do_sntp, "synchronize RTC via network",
+	   "[NTPServerNameOrIp]");
+#endif
+
 #if defined(CONFIG_CMD_DNS)
 U_BOOT_CMD(dns, 3, 1, do_dns, "lookup the IP of a hostname",
 	   "hostname [envvar]");
