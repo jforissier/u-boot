@@ -4,14 +4,23 @@ configuration file of the board.
 The "sntp" command gets network time from NTP time server and
 syncronize RTC of the board. This command needs the command line
 parameter of server's IP address or environment variable
-"ntpserverip". The network time is sent as UTC. So if you want to
-set local time to RTC, set the offset in second from UTC to the
-environment variable "time offset".
+"ntpserverip".
 
-If the DHCP server provides time server's IP or time offset, you
-don't need to set the above environment variables yourself.
+[CONFIG_NET_LWIP=y only] The host name of the NTP server may be
+provided instead of its IP address provided that CONFIG_CMD_DNS=y.
+
+The NTP server address does not need to be given if the DHCP server
+provides one.
+
+The network time is sent as UTC. So if you want to set local time to
+RTC, set the offset in second from UTC to the environment variable
+"timeoffset".
+
+[CONFIG_NET=y only] If the DHCP server provides time server's IP
+or time offset, you don't need to set the above environment
+variables yourself.
 
 Current limitations of SNTP support:
 1. The roundtrip time is ignored.
-2. Only the 1st NTP server IP, in the option ntp-servers of DHCP, will
-   be used.
+2. [CONFIG_NET=y only] Only the 1st NTP server IP, in the option
+   ntp-servers of DHCP, will be used.
