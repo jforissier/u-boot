@@ -33,22 +33,17 @@ int wget_request(ulong dst_addr, char *uri, struct wget_http_info *info)
 void net_sntp_set_rtc(u32 seconds)
 {
 	struct rtc_time tm;
-#ifdef CONFIG_DM_RTC
 	struct udevice *dev;
 	int ret;
-#endif
 
 	rtc_to_tm(seconds, &tm);
 
-#ifdef CONFIG_DM_RTC
 	ret = uclass_get_device(UCLASS_RTC, 0, &dev);
 	if (ret)
 		printf("SNTP: cannot find RTC: err=%d\n", ret);
 	else
 		dm_rtc_set(dev, &tm);
-#elif defined(CONFIG_CMD_DATE)
-	rtc_set(&tm);
-#endif
+
 	printf("Date: %4d-%02d-%02d Time: %2d:%02d:%02d\n",
 	       tm.tm_year, tm.tm_mon, tm.tm_mday,
 	       tm.tm_hour, tm.tm_min, tm.tm_sec);
