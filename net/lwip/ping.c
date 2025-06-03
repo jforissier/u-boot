@@ -165,7 +165,7 @@ int do_ping(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 	if (argc < 2)
 		return CMD_RET_USAGE;
 
-	if (!ipaddr_aton(argv[1], &addr))
+	if (net_lwip_dns_resolve(argv[1], &addr))
 		return CMD_RET_USAGE;
 
 restart:

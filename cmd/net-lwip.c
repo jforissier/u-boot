@@ -12,7 +12,7 @@ U_BOOT_CMD(dhcp, 3, 1, do_dhcp,
 
 #if defined(CONFIG_CMD_PING)
 U_BOOT_CMD(ping, 2, 1, do_ping, "send ICMP ECHO_REQUEST to network host",
-	   "pingAddress");
+	   "pingAddressOrHostName");
 #endif
 
 #if defined(CONFIG_CMD_TFTPBOOT)
