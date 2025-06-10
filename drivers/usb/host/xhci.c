@@ -159,6 +159,7 @@ static int xhci_start(struct xhci_hcor *hcor)
 	int ret;
 
 	puts("Starting the controller\n");
+	xhci_flush_cache((uintptr_t)&hcor, sizeof(hcor));
 	temp = xhci_readl(&hcor->or_usbcmd);
 	temp |= (CMD_RUN);
 	xhci_writel(&hcor->or_usbcmd, temp);
