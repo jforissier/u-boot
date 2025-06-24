@@ -36,52 +36,52 @@ _psci_vectors:
 	b	default_psci_vector	@ irq
 	b	psci_fiq_enter		@ fiq
 
-WEAK(psci_fiq_enter)
+WEAK2(psci_fiq_enter)
 	movs	pc, lr
-ENDPROC(psci_fiq_enter)
+ENDPROC2(psci_fiq_enter)
 
-WEAK(default_psci_vector)
+WEAK2(default_psci_vector)
 	movs	pc, lr
-ENDPROC(default_psci_vector)
+ENDPROC2(default_psci_vector)
 
-WEAK(psci_version)
-WEAK(psci_cpu_suspend)
-WEAK(psci_cpu_off)
-WEAK(psci_cpu_on)
-WEAK(psci_affinity_info)
-WEAK(psci_migrate)
-WEAK(psci_migrate_info_type)
-WEAK(psci_migrate_info_up_cpu)
-WEAK(psci_system_off)
-WEAK(psci_system_reset)
-WEAK(psci_features)
-WEAK(psci_cpu_freeze)
-WEAK(psci_cpu_default_suspend)
-WEAK(psci_node_hw_state)
-WEAK(psci_system_suspend)
-WEAK(psci_set_suspend_mode)
-WEAK(psi_stat_residency)
-WEAK(psci_stat_count)
+WEAK2(psci_version)
+WEAK2(psci_cpu_suspend)
+WEAK2(psci_cpu_off)
+WEAK2(psci_cpu_on)
+WEAK2(psci_affinity_info)
+WEAK2(psci_migrate)
+WEAK2(psci_migrate_info_type)
+WEAK2(psci_migrate_info_up_cpu)
+WEAK2(psci_system_off)
+WEAK2(psci_system_reset)
+WEAK2(psci_features)
+WEAK2(psci_cpu_freeze)
+WEAK2(psci_cpu_default_suspend)
+WEAK2(psci_node_hw_state)
+WEAK2(psci_system_suspend)
+WEAK2(psci_set_suspend_mode)
+WEAK2(psi_stat_residency)
+WEAK2(psci_stat_count)
 	mov	r0, #ARM_PSCI_RET_NI	@ Return -1 (Not Implemented)
 	mov	pc, lr
-ENDPROC(psci_stat_count)
-ENDPROC(psi_stat_residency)
-ENDPROC(psci_set_suspend_mode)
-ENDPROC(psci_system_suspend)
-ENDPROC(psci_node_hw_state)
-ENDPROC(psci_cpu_default_suspend)
-ENDPROC(psci_cpu_freeze)
-ENDPROC(psci_features)
-ENDPROC(psci_system_reset)
-ENDPROC(psci_system_off)
-ENDPROC(psci_migrate_info_up_cpu)
-ENDPROC(psci_migrate_info_type)
-ENDPROC(psci_migrate)
-ENDPROC(psci_affinity_info)
-ENDPROC(psci_cpu_on)
-ENDPROC(psci_cpu_off)
-ENDPROC(psci_cpu_suspend)
-ENDPROC(psci_version)
+ENDPROC2(psci_stat_count)
+ENDPROC2(psi_stat_residency)
+ENDPROC2(psci_set_suspend_mode)
+ENDPROC2(psci_system_suspend)
+ENDPROC2(psci_node_hw_state)
+ENDPROC2(psci_cpu_default_suspend)
+ENDPROC2(psci_cpu_freeze)
+ENDPROC2(psci_features)
+ENDPROC2(psci_system_reset)
+ENDPROC2(psci_system_off)
+ENDPROC2(psci_migrate_info_up_cpu)
+ENDPROC2(psci_migrate_info_type)
+ENDPROC2(psci_migrate)
+ENDPROC2(psci_affinity_info)
+ENDPROC2(psci_cpu_on)
+ENDPROC2(psci_cpu_off)
+ENDPROC2(psci_cpu_suspend)
+ENDPROC2(psci_version)
 
 _psci_table:
 	.word	ARM_PSCI_FN_CPU_SUSPEND
@@ -159,14 +159,14 @@ _smc_psci:
 	movs	pc, lr			@ Return to the kernel
 
 @ Requires dense and single-cluster CPU ID space
-WEAK(psci_get_cpu_id)
+WEAK2(psci_get_cpu_id)
 	mrc	p15, 0, r0, c0, c0, 5	/* read MPIDR */
 	and	r0, r0, #0xff		/* return CPU ID in cluster */
 	bx	lr
-ENDPROC(psci_get_cpu_id)
+ENDPROC2(psci_get_cpu_id)
 
 /* Imported from Linux kernel */
-ENTRY(psci_v7_flush_dcache_all)
+ENTRY2(psci_v7_flush_dcache_all)
 	stmfd	sp!, {r4-r5, r7, r9-r11, lr}
 	dmb					@ ensure ordering with previous memory accesses
 	mrc	p15, 1, r0, c0, c0, 1		@ read clidr
@@ -213,26 +213,26 @@ finished:
 	isb
 	ldmfd	sp!, {r4-r5, r7, r9-r11, lr}
 	bx	lr
-ENDPROC(psci_v7_flush_dcache_all)
+ENDPROC2(psci_v7_flush_dcache_all)
 
-WEAK(psci_disable_smp)
+WEAK2(psci_disable_smp)
 	mrc	p15, 0, r0, c1, c0, 1		@ ACTLR
 	bic	r0, r0, #(1 << 6)		@ Clear SMP bit
 	mcr	p15, 0, r0, c1, c0, 1		@ ACTLR
 	isb
 	dsb
 	bx	lr
-ENDPROC(psci_disable_smp)
+ENDPROC2(psci_disable_smp)
 
-WEAK(psci_enable_smp)
+WEAK2(psci_enable_smp)
 	mrc	p15, 0, r0, c1, c0, 1		@ ACTLR
 	orr	r0, r0, #(1 << 6)		@ Set SMP bit
 	mcr	p15, 0, r0, c1, c0, 1		@ ACTLR
 	isb
 	bx	lr
-ENDPROC(psci_enable_smp)
+ENDPROC2(psci_enable_smp)
 
-ENTRY(psci_cpu_off_common)
+ENTRY2(psci_cpu_off_common)
 	push	{lr}
 
 	bl	psci_v7_flush_dcache_all
@@ -253,7 +253,7 @@ ENTRY(psci_cpu_off_common)
 
 	pop	{lr}
 	bx	lr
-ENDPROC(psci_cpu_off_common)
+ENDPROC2(psci_cpu_off_common)
 
 @ The stacks are allocated in reverse order, i.e.
 @ the stack for CPU0 has the highest memory address.
@@ -278,12 +278,12 @@ LENTRY(psci_get_cpu_stack_top)
 	sub	r0, r3, r0, LSL #ARM_PSCI_STACK_SHIFT
 	sub	r0, r0, #4		@ Save space for target PC
 	bx	lr
-ENDPROC(psci_get_cpu_stack_top)
+ENDPROC2(psci_get_cpu_stack_top)
 
 @ {r0, r1, r2, ip} from _do_nonsec_entry(kernel_entry, 0, machid, r2) in
 @ arch/arm/lib/bootm.c:boot_jump_linux() must remain unchanged across
 @ this function.
-ENTRY(psci_stack_setup)
+ENTRY2(psci_stack_setup)
 	mov	r6, lr
 	mov	r7, r0
 	bl	psci_get_cpu_id		@ CPU ID => r0
@@ -291,17 +291,17 @@ ENTRY(psci_stack_setup)
 	mov	sp, r0
 	mov	r0, r7
 	bx	r6
-ENDPROC(psci_stack_setup)
+ENDPROC2(psci_stack_setup)
 
-WEAK(psci_arch_init)
+WEAK2(psci_arch_init)
 	mov	pc, lr
-ENDPROC(psci_arch_init)
+ENDPROC2(psci_arch_init)
 
-WEAK(psci_arch_cpu_entry)
+WEAK2(psci_arch_cpu_entry)
 	mov	pc, lr
-ENDPROC(psci_arch_cpu_entry)
+ENDPROC2(psci_arch_cpu_entry)
 
-ENTRY(psci_cpu_entry)
+ENTRY2(psci_cpu_entry)
 	bl	psci_enable_smp
 
 	bl	_nonsec_init
@@ -317,6 +317,6 @@ ENTRY(psci_cpu_entry)
 	bl	psci_get_target_pc		@ target PC => r0
 	pop	{r1}				@ context id => r1
 	b	_do_nonsec_entry
-ENDPROC(psci_cpu_entry)
+ENDPROC2(psci_cpu_entry)
 
 	.popsection

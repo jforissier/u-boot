@@ -35,7 +35,7 @@
 	addne	\ofs, \tmp, #FLOW_CTRL_CPU1_CSR - 8
 .endm
 
-ENTRY(psci_arch_init)
+ENTRY2(psci_arch_init)
 	mov	r6, lr
 
 	mrc	p15, 0, r5, c1, c1, 0	@ Read SCR
@@ -61,12 +61,12 @@ ENTRY(psci_arch_init)
 	mcrne	p15, 0, r7, c14, c0, 0	@ write CNTFRQ to CPU1..3
 
 	bx	r6
-ENDPROC(psci_arch_init)
+ENDPROC2(psci_arch_init)
 
 _sys_clock_freq:
 	.word	0
 
-ENTRY(psci_cpu_off)
+ENTRY2(psci_cpu_off)
 	bl	psci_cpu_off_common
 
 	bl	psci_get_cpu_id		@ CPU ID => r0
@@ -81,9 +81,9 @@ ENTRY(psci_cpu_off)
 
 _loop:	wfi
 	b	_loop
-ENDPROC(psci_cpu_off)
+ENDPROC2(psci_cpu_off)
 
-ENTRY(psci_cpu_on)
+ENTRY2(psci_cpu_on)
 	push	{r4, r5, r6, lr}
 
 	mov	r4, r1
@@ -105,6 +105,6 @@ ENTRY(psci_cpu_on)
 
 	mov	r0, #ARM_PSCI_RET_SUCCESS	@ Return PSCI_RET_SUCCESS
 	pop	{r4, r5, r6, pc}
-ENDPROC(psci_cpu_on)
+ENDPROC2(psci_cpu_on)
 
 	.popsection

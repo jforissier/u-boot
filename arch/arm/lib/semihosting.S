@@ -7,7 +7,6 @@
 #include <asm/macro.h>
 #include <linux/linkage.h>
 
-.pushsection .text.smh_trap, "ax"
 /* long smh_trap(unsigned int sysnum, void *addr); */
 ENTRY(smh_trap)
 
@@ -34,4 +33,3 @@ ENTRY(smh_trap)
 #endif
 
 ENDPROC(smh_trap)
-.popsection

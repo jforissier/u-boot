@@ -4,7 +4,7 @@
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 
 extra-y	= start.o
-obj-y	= cpu.o cache.o
+obj-y	= cpu.o cache.o cp15.o
 
 ifdef	CONFIG_XPL_BUILD
 ifdef	CONFIG_SPL_NO_CPU_SUPPORT
@@ -20,10 +20,7 @@ obj-$(CONFIG_ARCH_SUNXI) += sunxi/
 ifdef CONFIG_$(PHASE_)SYS_THUMB_BUILD
 ifndef CONFIG_HAS_THUMB2
 
-CFLAGS_cpu.o := -marm
-CFLAGS_cache.o := -marm
-CFLAGS_REMOVE_cpu.o := $(LTO_CFLAGS)
-CFLAGS_REMOVE_cache.o := $(LTO_CFLAGS)
+AFLAGS_REMOVE_cp15.o := -mthumb -mthumb-interwork
 
 endif
 endif

@@ -7,8 +7,8 @@
 #include <asm/asm.h>
 
 /* void *memcpy(void *, const void *, size_t) */
-ENTRY(__memcpy)
-WEAK(memcpy)
+ENTRY2(__memcpy)
+WEAK2(memcpy)
 	beq	a0, a1, .copy_end
 	/* Save for return value */
 	mv	t6, a0
@@ -158,4 +158,4 @@ WEAK(memcpy)
 	add	a1, a1, a3
 
 	j	.Lbyte_copy_tail
-END(__memcpy)
+ENDPROC2(__memcpy)

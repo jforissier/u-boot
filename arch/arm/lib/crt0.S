@@ -89,7 +89,7 @@ clbss_l:cmp	r0, r1			/* while not at end of BSS */
  * entry point of crt0 sequence
  */
 
-ENTRY(_main)
+ENTRY2(_main)
 
 /* Call arch_very_early_init before initializing C runtime environment. */
 #if CONFIG_IS_ENABLED(ARCH_VERY_EARLY_INIT)
@@ -200,7 +200,7 @@ here:
 	/* we should not return here. */
 #endif
 
-ENDPROC(_main)
+ENDPROC2(_main)
 
 _start_ofs:
 	.word	_start - _main

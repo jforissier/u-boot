@@ -23,7 +23,6 @@
  * x16: FEAT_CCIDX
  * x2~x9: clobbered
  */
-.pushsection .text.__asm_dcache_level, "ax"
 ENTRY(__asm_dcache_level)
 	lsl	x12, x0, #1
 	msr	csselr_el1, x12		/* select cache level */
@@ -64,7 +63,6 @@ loop_way:
 
 	ret
 ENDPROC(__asm_dcache_level)
-.popsection
 
 /*
  * void __asm_flush_dcache_all(int invalidate_only)
@@ -73,7 +71,6 @@ ENDPROC(__asm_dcache_level)
  *
  * flush or invalidate all data cache by SET/WAY.
  */
-.pushsection .text.__asm_dcache_all, "ax"
 ENTRY(__asm_dcache_all)
 	mov	x1, x0
 	dsb	sy
@@ -110,35 +107,26 @@ skip:
 finished:
 	ret
 ENDPROC(__asm_dcache_all)
-.popsection
 
-.pushsection .text.__asm_flush_dcache_all, "ax"
 ENTRY(__asm_flush_dcache_all)
 	mov	x0, #0
 	b	__asm_dcache_all
 ENDPROC(__asm_flush_dcache_all)
-.popsection
 
-.pushsection .text.__asm_invalidate_dcache_all, "ax"
 ENTRY(__asm_invalidate_dcache_all)
 	mov	x0, #0x1
 	b	__asm_dcache_all
 ENDPROC(__asm_invalidate_dcache_all)
-.popsection
 
-.pushsection .text.__asm_flush_l3_dcache, "ax"
 WEAK(__asm_flush_l3_dcache)
 	mov	x0, #0			/* return status as success */
 	ret
 ENDPROC(__asm_flush_l3_dcache)
-.popsection
 
-.pushsection .text.__asm_invalidate_l3_icache, "ax"
 WEAK(__asm_invalidate_l3_icache)
 	mov	x0, #0			/* return status as success */
 	ret
 ENDPROC(__asm_invalidate_l3_icache)
-.popsection
 
 #else	/* CONFIG_CMO_BY_VA */
 
@@ -147,18 +135,14 @@ ENDPROC(__asm_invalidate_l3_icache)
  * accidentally selecting CONFIG_CMO_BY_VA
  */
 
-.pushsection .text.__asm_invalidate_l3_icache, "ax"
 ENTRY(__asm_invalidate_l3_icache)
 	mov	x0, xzr
 	ret
 ENDPROC(__asm_invalidate_l3_icache)
-.popsection
-.pushsection .text.__asm_flush_l3_dcache, "ax"
 ENTRY(__asm_flush_l3_dcache)
 	mov	x0, xzr
 	ret
 ENDPROC(__asm_flush_l3_dcache)
-.popsection
 #endif	/* CONFIG_CMO_BY_VA */
 
 /*
@@ -169,7 +153,6 @@ ENDPROC(__asm_flush_l3_dcache)
  * x0: start address
  * x1: end address
  */
-.pushsection .text.__asm_flush_dcache_range, "ax"
 ENTRY(__asm_flush_dcache_range)
 	mrs	x3, ctr_el0
 	ubfx	x3, x3, #16, #4
@@ -186,7 +169,6 @@ ENTRY(__asm_flush_dcache_range)
 	dsb	sy
 	ret
 ENDPROC(__asm_flush_dcache_range)
-.popsection
 /*
  * void __asm_invalidate_dcache_range(start, end)
  *
@@ -195,7 +177,6 @@ ENDPROC(__asm_flush_dcache_range)
  * x0: start address
  * x1: end address
  */
-.pushsection .text.__asm_invalidate_dcache_range, "ax"
 ENTRY(__asm_invalidate_dcache_range)
 	mrs	x3, ctr_el0
 	ubfx	x3, x3, #16, #4
@@ -212,34 +193,28 @@ ENTRY(__asm_invalidate_dcache_range)
 	dsb	sy
 	ret
 ENDPROC(__asm_invalidate_dcache_range)
-.popsection
 
 /*
  * void __asm_invalidate_icache_all(void)
  *
  * invalidate all tlb entries.
  */
-.pushsection .text.__asm_invalidate_icache_all, "ax"
 ENTRY(__asm_invalidate_icache_all)
 	ic	ialluis
 	isb	sy
 	ret
 ENDPROC(__asm_invalidate_icache_all)
-.popsection
 
-.pushsection .text.__asm_invalidate_l3_dcache, "ax"
 WEAK(__asm_invalidate_l3_dcache)
 	mov	x0, #0			/* return status as success */
 	ret
 ENDPROC(__asm_invalidate_l3_dcache)
-.popsection
 
 /*
  * void __asm_switch_ttbr(ulong new_ttbr)
  *
  * Safely switches to a new page table.
  */
-.pushsection .text.__asm_switch_ttbr, "ax"
 ENTRY(__asm_switch_ttbr)
 	/* x2 = SCTLR (alive throghout the function) */
 	switch_el x4, 3f, 2f, 1f
@@ -287,4 +262,3 @@ ENTRY(__asm_switch_ttbr)
 
 	ret	x3
 ENDPROC(__asm_switch_ttbr)
-.popsection

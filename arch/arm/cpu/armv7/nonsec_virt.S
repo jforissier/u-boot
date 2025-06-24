@@ -103,13 +103,13 @@ _secure_monitor:
 	msr	spsr_cxfs, ip			@ Set full SPSR
 	movs	pc, lr				@ ERET to non-secure
 
-ENTRY(_do_nonsec_entry)
+ENTRY2(_do_nonsec_entry)
 	mov	ip, r0
 	mov	r0, r1
 	mov	r1, r2
 	mov	r2, r3
 	smc	#0
-ENDPROC(_do_nonsec_entry)
+ENDPROC2(_do_nonsec_entry)
 
 .macro get_cbar_addr	addr
 #ifdef CONFIG_ARM_GIC_BASE_ADDRESS
@@ -140,7 +140,7 @@ ENDPROC(_do_nonsec_entry)
  * code has already been executed by a C function before.
  * Then they go back to wfi and wait to be woken up by the kernel again.
  */
-ENTRY(_smp_pen)
+ENTRY2(_smp_pen)
 	cpsid	i
 	cpsid	f
 
@@ -148,7 +148,7 @@ ENTRY(_smp_pen)
 
 	adr	r0, _smp_pen			@ do not use this address again
 	b	smp_waitloop			@ wait for IPIs, board specific
-ENDPROC(_smp_pen)
+ENDPROC2(_smp_pen)
 #endif
 
 /*
@@ -164,7 +164,7 @@ ENDPROC(_smp_pen)
  * PERIPHBASE is used to get the GIC address. This could be 40 bits long,
  * though, but we check this in C before calling this function.
  */
-ENTRY(_nonsec_init)
+ENTRY2(_nonsec_init)
 	get_gicd_addr	r3
 
 	mvn	r1, #0				@ all bits to 1
@@ -203,11 +203,11 @@ ENTRY(_nonsec_init)
 
 	mov	r0, r3				@ return GICC address
 	bx	lr
-ENDPROC(_nonsec_init)
+ENDPROC2(_nonsec_init)
 
 #ifdef CFG_SMP_PEN_ADDR
 /* void __weak smp_waitloop(unsigned previous_address); */
-WEAK(smp_waitloop)
+WEAK2(smp_waitloop)
 	wfi
 	ldr	r1, =CFG_SMP_PEN_ADDR	@ load start address
 	ldr	r1, [r1]
@@ -218,7 +218,7 @@ WEAK(smp_waitloop)
 	beq	smp_waitloop		@ again (due to a spurious wakeup)
 	mov	r0, r1
 	b	_do_nonsec_entry
-ENDPROC(smp_waitloop)
+ENDPROC2(smp_waitloop)
 #endif
 
 	.popsection

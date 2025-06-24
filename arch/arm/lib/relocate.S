@@ -22,8 +22,6 @@
  * the standard cases must provide their own, strong, version.
  */
 
-	.section	.text.relocate_vectors,"ax",%progbits
-
 WEAK(relocate_vectors)
 
 #ifdef CONFIG_CPU_V7M
@@ -76,7 +74,7 @@ ENDPROC(relocate_vectors)
  * respect to relocate_code, and at run time, add relocate_code back to them.
  */
 
-ENTRY(relocate_code)
+ENTRY2(relocate_code)
 relocate_base:
 	adr	r3, relocate_base
 	ldr	r1, _image_copy_start_ofs
@@ -126,7 +124,7 @@ relocate_done:
 
 	ret	lr
 
-ENDPROC(relocate_code)
+ENDPROC2(relocate_code)
 
 _image_copy_start_ofs:
 	.word	__image_copy_start - relocate_code

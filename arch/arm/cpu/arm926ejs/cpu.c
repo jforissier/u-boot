@@ -29,7 +29,8 @@ static void cache_flush(void);
  *************************************************************/
 void sdelay(unsigned long loops)
 {
-	__asm__ volatile ("1:\n" "subs %0, %1, #1\n"
+	__asm__ volatile (".syntax unified\n"
+			  "1:\n" "subs %0, %1, #1\n"
 			  "bne 1b":"=r" (loops):"0"(loops));
 }
 
@@ -55,12 +56,12 @@ int cleanup_before_linux (void)
 	return 0;
 }
 
+void _cache_flush(void);
+
 /* flush I/D-cache */
 static void cache_flush (void)
 {
-#if !(CONFIG_IS_ENABLED(SYS_ICACHE_OFF) && CONFIG_IS_ENABLED(SYS_DCACHE_OFF))
-	unsigned long i = 0;
-
-	asm ("mcr p15, 0, %0, c7, c7, 0": :"r" (i));
-#endif
+	if (!(CONFIG_IS_ENABLED(SYS_ICACHE_OFF) &&
+	      CONFIG_IS_ENABLED(SYS_DCACHE_OFF)))
+		_cache_flush();
 }

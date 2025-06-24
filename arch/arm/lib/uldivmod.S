@@ -32,7 +32,6 @@ THUMB(
 TMP	.req	r8
 )
 
-.pushsection .text.__aeabi_uldivmod, "ax"
 ENTRY(__aeabi_uldivmod)
 
 	stmfd	sp!, {r4, r5, r6, r7, THUMB(TMP,) lr}
@@ -242,4 +241,3 @@ L_div_by_0:
 	mov	R_1, #0
 	ldmfd	sp!, {r4, r5, r6, r7, THUMB(TMP,) pc}
 ENDPROC(__aeabi_uldivmod)
-.popsection
