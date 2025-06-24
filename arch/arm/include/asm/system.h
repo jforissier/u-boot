@@ -456,31 +456,29 @@ static inline int is_hyp(void)
 #endif
 }
 
+unsigned int _get_cr_hyp(void);
+unsigned int _get_cr_nohyp(void);
+
 static inline unsigned int get_cr(void)
 {
 	unsigned int val;
 
 	if (is_hyp())
-		asm volatile("mrc p15, 4, %0, c1, c0, 0	@ get CR" : "=r" (val)
-								  :
-								  : "cc");
+		val = _get_cr_hyp();
 	else
-		asm volatile("mrc p15, 0, %0, c1, c0, 0	@ get CR" : "=r" (val)
-								  :
-								  : "cc");
+		val = _get_cr_nohyp();
 	return val;
 }
+
+unsigned int _set_cr_hyp(unsigned int val);
+unsigned int _set_cr_nohyp(unsigned int val);
 
 static inline void set_cr(unsigned int val)
 {
 	if (is_hyp())
-		asm volatile("mcr p15, 4, %0, c1, c0, 0	@ set CR" :
-								  : "r" (val)
-								  : "cc");
+		_set_cr_hyp(val);
 	else
-		asm volatile("mcr p15, 0, %0, c1, c0, 0	@ set CR" :
-								  : "r" (val)
-								  : "cc");
+		_set_cr_nohyp(val);
 	isb();
 }
 

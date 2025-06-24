@@ -9,44 +9,33 @@
 #include <linux/types.h>
 
 #if !CONFIG_IS_ENABLED(SYS_DCACHE_OFF)
+void _invalidate_dcache_all(void);
 void invalidate_dcache_all(void)
 {
-	asm volatile("mcr p15, 0, %0, c7, c6, 0\n" : : "r"(0));
+	_invalidate_dcache_all();
 }
 
+void _flush_dcache_all(void);
 void flush_dcache_all(void)
 {
-	asm volatile(
-		"0:"
-		"mrc p15, 0, r15, c7, c14, 3\n"
-		"bne 0b\n"
-		"mcr p15, 0, %0, c7, c10, 4\n"
-		 : : "r"(0) : "memory"
-	);
+	_flush_dcache_all();
 }
 
+void _invalidate_dcache_range(unsigned long start, unsigned long stop);
 void invalidate_dcache_range(unsigned long start, unsigned long stop)
 {
 	if (!check_cache_range(start, stop))
 		return;
-
-	while (start < stop) {
-		asm volatile("mcr p15, 0, %0, c7, c6, 1\n" : : "r"(start));
-		start += CONFIG_SYS_CACHELINE_SIZE;
-	}
+	_invalidate_dcache_range(start, stop);
 }
 
+void _flush_dcache_range(unsigned long start, unsigned long stop);
 void flush_dcache_range(unsigned long start, unsigned long stop)
 {
 	if (!check_cache_range(start, stop))
 		return;
 
-	while (start < stop) {
-		asm volatile("mcr p15, 0, %0, c7, c14, 1\n" : : "r"(start));
-		start += CONFIG_SYS_CACHELINE_SIZE;
-	}
-
-	asm volatile("mcr p15, 0, %0, c7, c10, 4\n" : : "r"(0));
+	_flush_dcache_range(start, stop);
 }
 #else /* #if !CONFIG_IS_ENABLED(SYS_DCACHE_OFF) */
 void invalidate_dcache_all(void)
@@ -70,11 +59,10 @@ __weak void invalidate_l2_cache(void) {}
 
 #if !CONFIG_IS_ENABLED(SYS_ICACHE_OFF)
 /* Invalidate entire I-cache and branch predictor array */
+void _invalidate_icache_all(void);
 void invalidate_icache_all(void)
 {
-	unsigned long i = 0;
-
-	asm ("mcr p15, 0, %0, c7, c5, 0" : : "r" (i));
+	_invalidate_icache_all();
 }
 #else
 void invalidate_icache_all(void) {}

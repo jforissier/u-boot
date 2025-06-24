@@ -109,6 +109,15 @@ __weak void dram_bank_mmu_setup(int bank)
 		set_section_dcache(i, DCACHE_DEFAULT_OPTION);
 }
 
+void _mmu_helper_lpae_hyp(unsigned long reg, unsigned long addr,
+			  unsigned long attr);
+void _mmu_helper_lpae_nohyp(unsigned long reg, unsigned long addr,
+			    unsigned long attr);
+void _mmu_helper_nolpae_hyp(unsigned long reg);
+void _mmu_helper_nolpae_nohyp(unsigned long reg);
+void _mmu_helper_pt(unsigned long addr);
+void _set_dacr(unsigned long val);
+
 /* to activate the MMU we need to set up virtual memory: use 1M areas */
 static inline void mmu_setup(void)
 {
@@ -141,42 +150,13 @@ static inline void mmu_setup(void)
 	reg |= TTBCR_ORGN0_WBNWA | TTBCR_IRGN0_WBNWA;
 #endif
 
-	if (is_hyp()) {
-		/* Set HTCR to enable LPAE */
-		asm volatile("mcr p15, 4, %0, c2, c0, 2"
-			: : "r" (reg) : "memory");
-		/* Set HTTBR0 */
-		asm volatile("mcrr p15, 4, %0, %1, c2"
-			:
-			: "r"(gd->arch.tlb_addr + (4096 * 4)), "r"(0)
-			: "memory");
-		/* Set HMAIR */
-		asm volatile("mcr p15, 4, %0, c10, c2, 0"
-			: : "r" (MEMORY_ATTRIBUTES) : "memory");
-	} else {
-		/* Set TTBCR to enable LPAE */
-		asm volatile("mcr p15, 0, %0, c2, c0, 2"
-			: : "r" (reg) : "memory");
-		/* Set 64-bit TTBR0 */
-		asm volatile("mcrr p15, 0, %0, %1, c2"
-			:
-			: "r"(gd->arch.tlb_addr + (4096 * 4)), "r"(0)
-			: "memory");
-		/* Set MAIR */
-		asm volatile("mcr p15, 0, %0, c10, c2, 0"
-			: : "r" (MEMORY_ATTRIBUTES) : "memory");
-	}
+	if (is_hyp())
+		_mmu_helper_lpae_hyp(reg, gd->arch.tlb_addr + (4096 * 4),
+				     MEMORY_ATTRIBUTES);
+	 else
+		_mmu_helper_lpae_nohyp(reg, gd->arch.tlb_addr + (4096 * 4),
+				       MEMORY_ATTRIBUTES);
 #elif defined(CONFIG_CPU_V7A)
-	if (is_hyp()) {
-		/* Set HTCR to disable LPAE */
-		asm volatile("mcr p15, 4, %0, c2, c0, 2"
-			: : "r" (0) : "memory");
-	} else {
-		/* Set TTBCR to disable LPAE */
-		asm volatile("mcr p15, 0, %0, c2, c0, 2"
-			: : "r" (0) : "memory");
-	}
-	/* Set TTBR0 */
 	reg = gd->arch.tlb_addr & TTBR0_BASE_ADDR_MASK;
 #if defined(CONFIG_SYS_ARM_CACHE_WRITETHROUGH)
 	reg |= TTBR0_RGN_WT | TTBR0_IRGN_WT;
@@ -185,19 +165,19 @@ static inline void mmu_setup(void)
 #else
 	reg |= TTBR0_RGN_WB | TTBR0_IRGN_WB;
 #endif
-	asm volatile("mcr p15, 0, %0, c2, c0, 0"
-		     : : "r" (reg) : "memory");
+	if (is_hyp())
+		_mmu_helper_nolpae_hyp(reg);
+	else
+		_mmu_helper_nolpae_nohyp(reg);
 #else
 	/* Copy the page table address to cp15 */
-	asm volatile("mcr p15, 0, %0, c2, c0, 0"
-		     : : "r" (gd->arch.tlb_addr) : "memory");
+	_mmu_helper_pt(gd->arch.tlb_addr);
 #endif
 	/*
 	 * initial value of Domain Access Control Register (DACR)
 	 * Set the access control to client (1U) for each of the 16 domains
 	 */
-	asm volatile("mcr p15, 0, %0, c3, c0, 0"
-		     : : "r" (0x55555555));
+	_set_dacr(0x55555555);
 
 	/* and enable the mmu */
 	reg = get_cr();	/* get control reg. */
