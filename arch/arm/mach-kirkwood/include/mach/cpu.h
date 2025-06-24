@@ -82,22 +82,16 @@ struct mbus_win {
  * read feroceon/sheeva core extra feature register
  * using co-proc instruction
  */
-static inline unsigned int readfr_extra_feature_reg(void)
-{
-	unsigned int val;
-	asm volatile ("mrc p15, 1, %0, c15, c1, 0 @ readfr exfr":"=r"
-			(val)::"cc");
-	return val;
-}
+unsigned int readfr_extra_feature_reg(void);
 
 /*
  * write feroceon/sheeva core extra feature register
  * using co-proc instruction
  */
+void _writefr_extra_feature_reg(unsigned int val);
 static inline void writefr_extra_feature_reg(unsigned int val)
 {
-	asm volatile ("mcr p15, 1, %0, c15, c1, 0 @ writefr exfr"::"r"
-			(val):"cc");
+	_writefr_extra_feature_reg(val);
 	isb();
 }
 

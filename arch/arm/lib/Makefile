@@ -81,6 +81,10 @@ endif
 obj-y	+= cache.o
 obj-$(CONFIG_SYS_ARM_CACHE_CP15)	+= cache-cp15.o
 CFLAGS_REMOVE_cache-cp15.o := $(LTO_CFLAGS)
+# Low-level CP15 instructions (mrc p15...) cause problems with LTO
+# when they are coded as inline assembly. They are implemented
+# in their own .S file instead.
+obj-$(CONFIG_SYS_ARM_CACHE_CP15) += cp15.o
 
 obj-y	+= psci-dt.o
 
@@ -111,13 +115,14 @@ endif
 # For .S, drop -mthumb* and other thumb-related options.
 # CFLAGS_REMOVE_* would not have an effet, so AFLAGS_REMOVE_*
 # was implemented and is used here.
-# Also, define ${target}_NO_THUMB_BUILD for these two targets
-# so that the code knows it should not use Thumb.
+# Also, define ${target}_NO_THUMB_BUILD for the targets that
+# need to know they should not use Thumb.
 
 AFLAGS_REMOVE_memset.o := -mthumb -mthumb-interwork
 AFLAGS_REMOVE_memcpy.o := -mthumb -mthumb-interwork
 AFLAGS_memset.o := -DMEMSET_NO_THUMB_BUILD
 AFLAGS_memcpy.o := -DMEMCPY_NO_THUMB_BUILD
+AFLAGS_REMOVE_cp15.o := -mthumb -mthumb-interwork
 
 # This is only necessary to force ARM mode on THUMB1 targets.
 ifneq ($(CONFIG_SYS_ARM_ARCH),4)

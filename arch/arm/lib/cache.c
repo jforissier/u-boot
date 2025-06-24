@@ -122,12 +122,10 @@ phys_addr_t noncached_alloc(size_t size, size_t align)
 #endif /* CONFIG_SYS_NONCACHED_MEMORY */
 
 #if CONFIG_IS_ENABLED(SYS_THUMB_BUILD)
+void _invalidate_l2_cache(void);
 void invalidate_l2_cache(void)
 {
-	unsigned int val = 0;
-
-	asm volatile("mcr p15, 1, %0, c15, c11, 0 @ invl l2 cache"
-		: : "r" (val) : "cc");
+	_invalidate_l2_cache();
 	isb();
 }
 #endif
