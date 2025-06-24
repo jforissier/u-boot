@@ -80,7 +80,6 @@ endif
 
 obj-y	+= cache.o
 obj-$(CONFIG_SYS_ARM_CACHE_CP15)	+= cache-cp15.o
-CFLAGS_REMOVE_cache-cp15.o := $(LTO_CFLAGS)
 # Low-level CP15 instructions (mrc p15...) cause problems with LTO
 # when they are coded as inline assembly. They are implemented
 # in their own .S file instead.
@@ -104,13 +103,6 @@ endif
 ifdef CONFIG_$(PHASE_)SYS_THUMB_BUILD
 asflags-$(CONFIG_HAS_THUMB2) += -DCONFIG_THUMB2_KERNEL
 ifndef CONFIG_HAS_THUMB2
-
-# for C files, just apend -marm, which will override previous -mthumb*
-
-ifndef CONFIG_ARM64
-CFLAGS_cache.o := -marm
-CFLAGS_cache-cp15.o := -marm
-endif
 
 # For .S, drop -mthumb* and other thumb-related options.
 # CFLAGS_REMOVE_* would not have an effet, so AFLAGS_REMOVE_*

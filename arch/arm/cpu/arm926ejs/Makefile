@@ -20,11 +20,6 @@ obj-$(CONFIG_ARCH_SUNXI) += sunxi/
 ifdef CONFIG_$(PHASE_)SYS_THUMB_BUILD
 ifndef CONFIG_HAS_THUMB2
 
-CFLAGS_cpu.o := -marm
-CFLAGS_cache.o := -marm
-CFLAGS_REMOVE_cpu.o := $(LTO_CFLAGS)
-CFLAGS_REMOVE_cache.o := $(LTO_CFLAGS)
-
 AFLAGS_REMOVE_cp15.o := -mthumb -mthumb-interwork
 
 endif
