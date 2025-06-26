@@ -58,6 +58,10 @@
 	.weak SYMBOL_NAME(name) ASM_NL \
 	LENTRY(name)
 
+#define ENTRY_OWN_SECTION(name) \
+	.pushsection .text.##name ASM_NL \
+	ENTRY(name)
+
 #ifndef END
 #define END(name) \
 	.size name, .-name
@@ -68,6 +72,10 @@
 	.type name STT_FUNC ASM_NL \
 	END(name)
 #endif
+
+#define ENDPROC_OWN_SECTION(name) \
+	ENDPROC(name) ASM_NL \
+	.popsection
 
 #endif
 
