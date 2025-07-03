@@ -12,10 +12,10 @@
 
 /* Default PSCI function, return -1, Not Implemented */
 #define PSCI_DEFAULT(__fn) \
-	WEAK(__fn); \
+	WEAK2(__fn); \
 	mov	w0, #ARM_PSCI_RET_NI; \
 	ret; \
-	ENDPROC(__fn); \
+	ENDPROC2(__fn); \
 
 /* PSCI function and ID table definition*/
 #define PSCI_TABLE(__id, __fn) \
@@ -208,7 +208,7 @@ handle_smc64:
  * used for the return value, while in this PSCI environment, X0 usually holds
  * the SMC function identifier, so X0 should be saved by caller function.
  */
-WEAK(psci_get_cpu_id)
+WEAK2(psci_get_cpu_id)
 #ifdef CONFIG_ARMV8_PSCI_CPUS_PER_CLUSTER
 	mrs	x9, MPIDR_EL1
 	ubfx	x9, x9, #8, #8
@@ -221,7 +221,7 @@ WEAK(psci_get_cpu_id)
 	ubfx	x10, x10, #0, #8
 	add	x0, x10, x9
 	ret
-ENDPROC(psci_get_cpu_id)
+ENDPROC2(psci_get_cpu_id)
 
 /* CPU ID input in x0, stack top output in x0*/
 LENTRY(psci_get_cpu_stack_top)
@@ -229,7 +229,7 @@ LENTRY(psci_get_cpu_stack_top)
 	lsl	x0, x0, #ARM_PSCI_STACK_SHIFT
 	sub	x0, x9, x0
 	ret
-ENDPROC(psci_get_cpu_stack_top)
+ENDPROC2(psci_get_cpu_stack_top)
 
 unhandled_exception:
 	b	unhandled_exception	/* simply dead loop */
@@ -261,9 +261,9 @@ handle_sync:
  * Override this function if custom error handling is
  * needed for asynchronous aborts
  */
-WEAK(plat_error_handler)
+WEAK2(plat_error_handler)
 	ret
-ENDPROC(plat_error_handler)
+ENDPROC2(plat_error_handler)
 
 handle_error:
 	bl	psci_get_cpu_id
@@ -316,14 +316,14 @@ el3_exception_vectors:
 	.align	7
 	b	unhandled_exception	/* SError, Lower EL using AArch32 */
 
-ENTRY(psci_setup_vectors)
+ENTRY2(psci_setup_vectors)
 	adr	x0, el3_exception_vectors
 	msr	vbar_el3, x0
 	ret
-ENDPROC(psci_setup_vectors)
+ENDPROC2(psci_setup_vectors)
 
-WEAK(psci_arch_init)
+WEAK2(psci_arch_init)
 	ret
-ENDPROC(psci_arch_init)
+ENDPROC2(psci_arch_init)
 
 .popsection

@@ -374,7 +374,7 @@ setup_pll_func:
 #endif	/* CONFIG_MX53 */
 .endm
 
-ENTRY(lowlevel_init)
+ENTRY2(lowlevel_init)
 	mov r10, lr
 	mov r4, #0	/* Fix R4 to 0 */
 
@@ -399,7 +399,7 @@ ENTRY(lowlevel_init)
 	init_clock
 
 	mov pc, r10
-ENDPROC(lowlevel_init)
+ENDPROC2(lowlevel_init)
 
 /* Board level setting value */
 #if defined(CONFIG_MX51_PLL_ERRATA)

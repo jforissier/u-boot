@@ -14,7 +14,6 @@
 #define LOAD_IDX(reg, idx)	lw reg, (idx*4)(a0)
 #endif
 
-.pushsection .text.setjmp, "ax"
 ENTRY(setjmp)
 	/* Preserve all callee-saved registers and the SP */
 	STORE_IDX(s0, 0)
@@ -34,9 +33,7 @@ ENTRY(setjmp)
 	li  a0, 0
 	ret
 ENDPROC(setjmp)
-.popsection
 
-.pushsection .text.longjmp, "ax"
 ENTRY(longjmp)
 	LOAD_IDX(s0, 0)
 	LOAD_IDX(s1, 1)
@@ -58,9 +55,7 @@ ENTRY(longjmp)
 	add a0, a0, a1
 	ret
 ENDPROC(longjmp)
-.popsection
 
-.pushsection .text.initjmp, "ax"
 ENTRY(initjmp)
 	/* a1: entry point address, a2: stack base, a3: stack size */
 	add a2, a2, a3
@@ -69,4 +64,3 @@ ENTRY(initjmp)
 	li  a0, 0
 	ret
 ENDPROC(initjmp)
-.popsection

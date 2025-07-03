@@ -50,24 +50,36 @@
 	ALIGN ASM_NL \
 	SYMBOL_NAME_LABEL(name)
 
-#define ENTRY(name) \
+#define ENTRY2(name) \
 	.globl SYMBOL_NAME(name) ASM_NL \
 	LENTRY(name)
 
-#define WEAK(name) \
+#define WEAK2(name) \
 	.weak SYMBOL_NAME(name) ASM_NL \
 	LENTRY(name)
+
+#define ENTRY(name) \
+	.pushsection .text.##name,"ax",%progbits ASM_NL \
+	ENTRY2(name)
+
+#define WEAK(name) \
+	.pushsection .text.##name,"ax",%progbits ASM_NL \
+	WEAK2(name)
 
 #ifndef END
 #define END(name) \
 	.size name, .-name
 #endif
 
-#ifndef ENDPROC
-#define ENDPROC(name) \
+#define ENDPROC2(name) \
 	.type name STT_FUNC ASM_NL \
 	END(name)
 #endif
+
+#ifndef ENDPROC
+#define ENDPROC(name) \
+	ENDPROC2(name) ASM_NL \
+	.popsection
 
 #endif
 

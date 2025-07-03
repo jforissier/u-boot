@@ -7,7 +7,6 @@
 #include <asm/assembler.h>
 #include <linux/linkage.h>
 
-.pushsection .text.setjmp, "ax"
 ENTRY(setjmp)
 	/*
 	 * A subroutine must preserve the contents of the registers
@@ -19,9 +18,7 @@ ENTRY(setjmp)
 	mov  a1, #0
 	ret  lr
 ENDPROC(setjmp)
-.popsection
 
-.pushsection .text.longjmp, "ax"
 ENTRY(longjmp)
 	ldm  a1, {v1-v8, ip, lr}
 	mov  sp, ip
@@ -33,9 +30,7 @@ ENTRY(longjmp)
 1:
 	ret  lr
 ENDPROC(longjmp)
-.popsection
 
-.pushsection .text.initjmp, "ax"
 ENTRY(initjmp)
 	stm  a1, {v1-v8}
 	/* a2: entry point address, a3: stack base, a4: stack size */
@@ -45,4 +40,3 @@ ENTRY(initjmp)
 	mov  a1, #0
 	ret  lr
 ENDPROC(initjmp)
-.popsection

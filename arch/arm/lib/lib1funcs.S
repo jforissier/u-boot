@@ -191,8 +191,8 @@
 
 
 .pushsection .text.__udivsi3, "ax"
-ENTRY(__udivsi3)
-ENTRY(__aeabi_uidiv)
+ENTRY2(__udivsi3)
+ENTRY2(__aeabi_uidiv)
 UNWIND(.fnstart)
 
 	subs	r2, r1, #1
@@ -218,11 +218,10 @@ UNWIND(.fnstart)
 	ret	lr
 
 UNWIND(.fnend)
-ENDPROC(__udivsi3)
-ENDPROC(__aeabi_uidiv)
+ENDPROC2(__udivsi3)
+ENDPROC2(__aeabi_uidiv)
 .popsection
 
-.pushsection .text.__umodsi3, "ax"
 ENTRY(__umodsi3)
 UNWIND(.fnstart)
 
@@ -240,11 +239,10 @@ UNWIND(.fnstart)
 
 UNWIND(.fnend)
 ENDPROC(__umodsi3)
-.popsection
 
 .pushsection .text.__divsi3, "ax"
-ENTRY(__divsi3)
-ENTRY(__aeabi_idiv)
+ENTRY2(__divsi3)
+ENTRY2(__aeabi_idiv)
 UNWIND(.fnstart)
 
 	cmp	r1, #0
@@ -283,11 +281,10 @@ UNWIND(.fnstart)
 	ret	lr
 
 UNWIND(.fnend)
-ENDPROC(__divsi3)
-ENDPROC(__aeabi_idiv)
+ENDPROC2(__divsi3)
+ENDPROC2(__aeabi_idiv)
 .popsection
 
-.pushsection .text.__modsi3, "ax"
 ENTRY(__modsi3)
 UNWIND(.fnstart)
 
@@ -311,9 +308,7 @@ UNWIND(.fnstart)
 
 UNWIND(.fnend)
 ENDPROC(__modsi3)
-.popsection
 
-.pushsection .text.__aeabi_uidivmod, "ax"
 ENTRY(__aeabi_uidivmod)
 UNWIND(.fnstart)
 UNWIND(.save {r0, r1, ip, lr}	)
@@ -327,9 +322,7 @@ UNWIND(.save {r0, r1, ip, lr}	)
 
 UNWIND(.fnend)
 ENDPROC(__aeabi_uidivmod)
-.popsection
 
-.pushsection .text.__aeabi_uidivmod, "ax"
 ENTRY(__aeabi_idivmod)
 UNWIND(.fnstart)
 UNWIND(.save {r0, r1, ip, lr}	)
@@ -343,7 +336,6 @@ UNWIND(.save {r0, r1, ip, lr}	)
 
 UNWIND(.fnend)
 ENDPROC(__aeabi_idivmod)
-.popsection
 
 .pushsection .text.Ldiv0, "ax"
 Ldiv0:
@@ -357,12 +349,11 @@ UNWIND(.save {lr})
 	ldr	pc, [sp], #8
 
 UNWIND(.fnend)
-ENDPROC(Ldiv0)
+ENDPROC2(Ldiv0)
 .popsection
 
 /* Thumb-1 specialities */
 #if CONFIG_IS_ENABLED(SYS_THUMB_BUILD) && !defined(CONFIG_HAS_THUMB2)
-.pushsection .text.__gnu_thumb1_case_sqi, "ax"
 ENTRY(__gnu_thumb1_case_sqi)
 	push	{r1}
 	mov	r1, lr
@@ -374,9 +365,7 @@ ENTRY(__gnu_thumb1_case_sqi)
 	pop	{r1}
 	ret	lr
 ENDPROC(__gnu_thumb1_case_sqi)
-.popsection
 
-.pushsection .text.__gnu_thumb1_case_uqi, "ax"
 ENTRY(__gnu_thumb1_case_uqi)
 	push	{r1}
 	mov	r1, lr
@@ -388,9 +377,7 @@ ENTRY(__gnu_thumb1_case_uqi)
 	pop	{r1}
 	ret	lr
 ENDPROC(__gnu_thumb1_case_uqi)
-.popsection
 
-.pushsection .text.__gnu_thumb1_case_shi, "ax"
 ENTRY(__gnu_thumb1_case_shi)
 	push	{r0, r1}
 	mov	r1, lr
@@ -403,9 +390,7 @@ ENTRY(__gnu_thumb1_case_shi)
 	pop	{r0, r1}
 	ret	lr
 ENDPROC(__gnu_thumb1_case_shi)
-.popsection
 
-.pushsection .text.__gnu_thumb1_case_uhi, "ax"
 ENTRY(__gnu_thumb1_case_uhi)
 	push	{r0, r1}
 	mov	r1, lr
@@ -418,10 +403,8 @@ ENTRY(__gnu_thumb1_case_uhi)
 	pop	{r0, r1}
 	ret	lr
 ENDPROC(__gnu_thumb1_case_uhi)
-.popsection
 
 /* Taken and adapted from: https://github.com/gcc-mirror/gcc/blob/4f181f9c7ee3efc509d185fdfda33be9018f1611/libgcc/config/arm/lib1funcs.S#L2156 */
-.pushsection .text.__gnu_thumb1_case_si, "ax"
 ENTRY(__gnu_thumb1_case_si)
 	push	{r0, r1}
 	mov	r1, lr
@@ -435,5 +418,4 @@ ENTRY(__gnu_thumb1_case_si)
 	pop	{r0, r1}
 	mov	pc, lr		/* We know we were called from thumb code.  */
 ENDPROC(__gnu_thumb1_case_si)
-.popsection
 #endif

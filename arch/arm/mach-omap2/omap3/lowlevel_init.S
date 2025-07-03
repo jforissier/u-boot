@@ -23,7 +23,7 @@
  *	R0 - Service ID
  *	R1 - paramer list
  */
-ENTRY(do_omap3_emu_romcode_call)
+ENTRY2(do_omap3_emu_romcode_call)
 	PUSH {r4-r12, lr} @ Save all registers from ROM code!
 	MOV r12, r0	@ Copy the Secure Service ID in R12
 	MOV r3, r1	@ Copy the pointer to va_list in R3
@@ -35,14 +35,14 @@ ENTRY(do_omap3_emu_romcode_call)
 	mcr     p15, 0, r0, c7, c10, 5	@ DMB
 	SMC     #1	@ Call PPA service
 	POP {r4-r12, pc}
-ENDPROC(do_omap3_emu_romcode_call)
+ENDPROC2(do_omap3_emu_romcode_call)
 
 #if !defined(CONFIG_SYS_NAND_BOOT) && !defined(CONFIG_SYS_NAND_BOOT)
 /**************************************************************************
  * cpy_clk_code: relocates clock code into SRAM where its safer to execute
  * R1 = SRAM destination address.
  *************************************************************************/
-ENTRY(cpy_clk_code)
+ENTRY2(cpy_clk_code)
 	/* Copy DPLL code into SRAM */
 	adr	r0, go_to_speed		/* copy from start of go_to_speed... */
 	adr	r2, go_to_speed_end	/* ... up to start of go_to_speed_end */
@@ -52,7 +52,7 @@ next2:
 	cmp	r0, r2			/* until source end address [r2] */
 	blo	next2
 	mov	pc, lr			/* back to caller */
-ENDPROC(cpy_clk_code)
+ENDPROC2(cpy_clk_code)
 
 /* ***************************************************************************
  *  go_to_speed: -Moves to bypass, -Commits clock dividers, -puts dpll at speed
@@ -67,7 +67,7 @@ ENDPROC(cpy_clk_code)
  *        L3 when its not in self refresh seems bad for it.  Normally, this
  *	  code runs from flash before SDR is init so that should be ok.
  ****************************************************************************/
-ENTRY(go_to_speed)
+ENTRY2(go_to_speed)
 	stmfd sp!, {r4 - r6}
 
 	/* move into fast relock bypass */
@@ -128,7 +128,7 @@ wait2:
 	nop
 	ldmfd	sp!, {r4 - r6}
 	mov	pc, lr		/* back to caller, locked */
-ENDPROC(go_to_speed)
+ENDPROC2(go_to_speed)
 
 _go_to_speed: .word go_to_speed
 
@@ -172,7 +172,7 @@ go_to_speed_end:
 
 #if !CONFIG_IS_ENABLED(SKIP_LOWLEVEL_INIT) && \
 	!CONFIG_IS_ENABLED(SKIP_LOWLEVEL_INIT_ONLY)
-ENTRY(lowlevel_init)
+ENTRY2(lowlevel_init)
 	ldr	sp, SRAM_STACK
 	str	ip, [sp]	/* stash ip register */
 	mov	ip, lr		/* save link reg across call */
@@ -189,7 +189,7 @@ ENTRY(lowlevel_init)
 	/* tail-call s_init to setup pll, mux, memory */
 	b	s_init
 
-ENDPROC(lowlevel_init)
+ENDPROC2(lowlevel_init)
 #endif
 
 	/* the literal pools origin */
@@ -454,27 +454,27 @@ per2_36x_dpll_param:
 .word PER2_36XX_M_38P4, PER2_36XX_N_38P4, 0, PER2_36XX_M2_38P4
 
 
-ENTRY(get_36x_mpu_dpll_param)
+ENTRY2(get_36x_mpu_dpll_param)
 	adr	r0, mpu_36x_dpll_param
 	mov	pc, lr
-ENDPROC(get_36x_mpu_dpll_param)
+ENDPROC2(get_36x_mpu_dpll_param)
 
-ENTRY(get_36x_iva_dpll_param)
+ENTRY2(get_36x_iva_dpll_param)
 	adr	r0, iva_36x_dpll_param
 	mov	pc, lr
-ENDPROC(get_36x_iva_dpll_param)
+ENDPROC2(get_36x_iva_dpll_param)
 
-ENTRY(get_36x_core_dpll_param)
+ENTRY2(get_36x_core_dpll_param)
 	adr	r0, core_36x_dpll_param
 	mov	pc, lr
-ENDPROC(get_36x_core_dpll_param)
+ENDPROC2(get_36x_core_dpll_param)
 
-ENTRY(get_36x_per_dpll_param)
+ENTRY2(get_36x_per_dpll_param)
 	adr	r0, per_36x_dpll_param
 	mov	pc, lr
-ENDPROC(get_36x_per_dpll_param)
+ENDPROC2(get_36x_per_dpll_param)
 
-ENTRY(get_36x_per2_dpll_param)
+ENTRY2(get_36x_per2_dpll_param)
 	adr	r0, per2_36x_dpll_param
 	mov	pc, lr
-ENDPROC(get_36x_per2_dpll_param)
+ENDPROC2(get_36x_per2_dpll_param)

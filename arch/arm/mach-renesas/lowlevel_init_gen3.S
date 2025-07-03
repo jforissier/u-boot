@@ -31,13 +31,11 @@ ENTRY(save_boot_params)
 	b	save_boot_params_ret
 ENDPROC(save_boot_params)
 
-.pushsection .text.s_init, "ax"
 WEAK(s_init)
 	ret
 ENDPROC(s_init)
-.popsection
 
-ENTRY(lowlevel_init)
+ENTRY2(lowlevel_init)
 	mov	x29, lr			/* Save LR */
 
 #ifndef CONFIG_ARMV8_MULTIENTRY
@@ -100,4 +98,4 @@ lowlevel_in_el1:
 2:
 	mov	lr, x29			/* Restore LR */
 	ret
-ENDPROC(lowlevel_init)
+ENDPROC2(lowlevel_init)

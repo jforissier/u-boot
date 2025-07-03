@@ -44,7 +44,6 @@
  * Clobbered regs: xl, ip
  */
 
-.pushsection .text.__do_div64, "ax"
 ENTRY(__do_div64)
 UNWIND(.fnstart)
 
@@ -210,4 +209,3 @@ Ldiv0_64:
 
 UNWIND(.fnend)
 ENDPROC(__do_div64)
-.popsection

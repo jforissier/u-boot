@@ -108,7 +108,7 @@ LENTRY(psci_check_target_cpu_id)
 
 	mov	r0, #ARM_PSCI_RET_SUCCESS
 	bx	lr
-ENDPROC(psci_check_target_cpu_id)
+ENDPROC2(psci_check_target_cpu_id)
 
 	@ r1 = target CPU
 	@ r2 = target PC

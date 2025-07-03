@@ -15,8 +15,8 @@
 #endif
 
 .pushsection .text.__lshldi3, "ax"
-ENTRY(__lshrdi3)
-ENTRY(__aeabi_llsr)
+ENTRY2(__lshrdi3)
+ENTRY2(__aeabi_llsr)
 
 	subs	r3, r2, #32
 	rsb	ip, r2, #32
@@ -28,6 +28,6 @@ ENTRY(__aeabi_llsr)
 	mov	ah, ah, lsr r2
 	ret	lr
 
-ENDPROC(__lshrdi3)
-ENDPROC(__aeabi_llsr)
+ENDPROC2(__lshrdi3)
+ENDPROC2(__aeabi_llsr)
 .popsection

@@ -128,7 +128,7 @@ switch_to_hypervisor_ret:
 
 /*------------------------------------------------------------------------------*/
 
-ENTRY(c_runtime_cpu_setup)
+ENTRY2(c_runtime_cpu_setup)
 /*
  * If I-cache is enabled invalidate it
  */
@@ -140,7 +140,7 @@ ENTRY(c_runtime_cpu_setup)
 
 	bx	lr
 
-ENDPROC(c_runtime_cpu_setup)
+ENDPROC2(c_runtime_cpu_setup)
 
 /*************************************************************************
  *
@@ -151,7 +151,7 @@ ENDPROC(c_runtime_cpu_setup)
  * Don't save anything to stack even if compiled with -O0
  *
  *************************************************************************/
-WEAK(save_boot_params)
+WEAK2(save_boot_params)
 #if (IS_ENABLED(CONFIG_BLOBLIST))
 	/* Calculate the PC-relative address of saved_args */
 	adr	r12, saved_args_offset
@@ -168,7 +168,7 @@ WEAK(save_boot_params)
 	str	r3, [r12, #12]
 #endif
 	b	save_boot_params_ret		@ back to my caller
-ENDPROC(save_boot_params)
+ENDPROC2(save_boot_params)
 
 #if (IS_ENABLED(CONFIG_BLOBLIST))
 saved_args_offset:
@@ -187,9 +187,9 @@ END(saved_args)
 #endif
 
 #ifdef CONFIG_ARMV7_LPAE
-WEAK(switch_to_hypervisor)
+WEAK2(switch_to_hypervisor)
 	b	switch_to_hypervisor_ret
-ENDPROC(switch_to_hypervisor)
+ENDPROC2(switch_to_hypervisor)
 #endif
 
 /*************************************************************************
@@ -200,7 +200,7 @@ ENDPROC(switch_to_hypervisor)
  * CONFIG_SYS_ICACHE_OFF is defined.
  *
  *************************************************************************/
-ENTRY(cpu_init_cp15)
+ENTRY2(cpu_init_cp15)
 
 #if CONFIG_IS_ENABLED(ARMV7_SET_CORTEX_SMPEN)
 	/*
@@ -393,7 +393,7 @@ skip_errata_801819:
 #endif
 
 	mov	pc, r5			@ back to my caller
-ENDPROC(cpu_init_cp15)
+ENDPROC2(cpu_init_cp15)
 
 #if !CONFIG_IS_ENABLED(SKIP_LOWLEVEL_INIT) && \
 	!CONFIG_IS_ENABLED(SKIP_LOWLEVEL_INIT_ONLY)
@@ -405,7 +405,7 @@ ENDPROC(cpu_init_cp15)
  * setup memory timing
  *
  *************************************************************************/
-ENTRY(cpu_init_crit)
+ENTRY2(cpu_init_crit)
 	/*
 	 * Jump to board specific initialization...
 	 * The Mask ROM will have already initialized
@@ -413,7 +413,7 @@ ENTRY(cpu_init_crit)
 	 * wake up conditions.
 	 */
 	b	lowlevel_init		@ go setup pll,mux,memory
-ENDPROC(cpu_init_crit)
+ENDPROC2(cpu_init_crit)
 #endif
 
 #if CONFIG_POSITION_INDEPENDENT

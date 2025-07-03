@@ -3,8 +3,8 @@
 #include <linux/linkage.h>
 #include <asm/asm.h>
 
-ENTRY(__memmove)
-WEAK(memmove)
+ENTRY2(__memmove)
+WEAK2(memmove)
 	/*
 	 * Here we determine if forward copy is possible. Forward copy is
 	 * preferred to backward copy as it is more cache friendly.
@@ -124,5 +124,4 @@ WEAK(memmove)
 	add	a1, a1, a3
 
 	j	.Lbyte_copy_tail
-
-END(__memmove)
+ENDPROC2(__memmove)

@@ -23,8 +23,8 @@
 #endif
 
 .pushsection .text.__muldi3, "ax"
-ENTRY(__muldi3)
-ENTRY(__aeabi_lmul)
+ENTRY2(__muldi3)
+ENTRY2(__aeabi_lmul)
 
 	mul	xh, yl, xh
 	mla	xh, xl, yh, xh
@@ -42,6 +42,6 @@ ENTRY(__aeabi_lmul)
 	adc	xh, xh, ip, lsr #16
 	ret	lr
 
-ENDPROC(__muldi3)
-ENDPROC(__aeabi_lmul)
+ENDPROC2(__muldi3)
+ENDPROC2(__aeabi_lmul)
 .popsection

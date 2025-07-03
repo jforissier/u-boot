@@ -6,7 +6,6 @@
 #include <asm/asm.h>
 #include <linux/linkage.h>
 
-.pushsection .text.smh_trap, "ax"
 ENTRY(smh_trap)
 	.align	4		/* keep slli, ebreak, srai in same page */
 	.option	push
@@ -19,4 +18,3 @@ ENTRY(smh_trap)
 
 	ret
 ENDPROC(smh_trap)
-.popsection

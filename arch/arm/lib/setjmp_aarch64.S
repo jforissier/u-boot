@@ -7,7 +7,6 @@
 #include <asm/macro.h>
 #include <linux/linkage.h>
 
-.pushsection .text.setjmp, "ax"
 ENTRY(setjmp)
 	/* Preserve all callee-saved registers and the SP */
 	stp  x19, x20, [x0,#0]
@@ -21,9 +20,7 @@ ENTRY(setjmp)
 	mov  x0, #0
 	ret
 ENDPROC(setjmp)
-.popsection
 
-.pushsection .text.longjmp, "ax"
 ENTRY(longjmp)
 	ldp  x19, x20, [x0,#0]
 	ldp  x21, x22, [x0,#16]
@@ -38,9 +35,7 @@ ENTRY(longjmp)
 	csinc x0, x0, xzr, ne
 	ret
 ENDPROC(longjmp)
-.popsection
 
-.pushsection .text.initjmp, "ax"
 ENTRY(initjmp)
 	/* x1: entry point address, x2: stack base, x3: stack size */
 	add x2, x2, x3
@@ -48,4 +43,3 @@ ENTRY(initjmp)
 	mov  x0, #0
 	ret
 ENDPROC(initjmp)
-.popsection
